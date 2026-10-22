@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beyond Tabletop: ICRA 2027 Workshop</title>
+  <meta name="description" content="Beyond Tabletop: Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation. A full-day workshop at ICRA 2027 in Seoul.">
+  <meta name="theme-color" content="#17113d">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Beyond Tabletop: Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation">
+  <meta property="og:description" content="A full-day workshop at ICRA 2027 in Seoul.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='20' height='20' rx='5' fill='%2317113d'/%3E%3Ccircle cx='12' cy='16' r='3.2' fill='%23fca636'/%3E%3Cpath d='M22 16h6M28 12v8M28 12h3M28 20h3' fill='none' stroke='%2317113d' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --night: #17113d;
+      --night-line: rgba(255, 255, 255, 0.16);
+      --ink: #1d1838;
+      --slate: #5e5a78;
+      --rule: #e4e1ee;
+      --mist: #f4f2f9;
+      --violet: #6a00a8;
+      --violet-deep: #4f007e;
+      --violet-soft: #efe6f7;
+      --amber: #fca636;
+      --amber-light: #fdbb5f;
+      --tag-bg: #fff0e3;
+      --tag-ink: #9a3412;
+      --on-night: #ffffff;
+      --on-night-muted: #c9c3e6;
+      --header-h: 4rem;
+      --gutter: 1rem;
+      color-scheme: light;
+    }
+    @media (min-width: 48rem) { :root { --gutter: 2rem; } }
+    @media (min-width: 62.5rem) { :root { --header-h: 4.5rem; } }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-padding-top: calc(var(--header-h) + 1rem); -webkit-text-size-adjust: 100%; }
+    @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    body {
+      margin: 0;
+      background: #fff;
+      color: var(--ink);
+      font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 1.0625rem;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media (min-width: 48rem) { body { font-size: 1.125rem; } }
+    img { display: block; max-width: 100%; }
+    a { color: var(--violet); text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+    a:hover { color: var(--violet-deep); text-decoration-thickness: 2px; }
+    :focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 2px; }
+    .hero :focus-visible, .site-footer :focus-visible { outline-color: var(--amber); }
+
+    .wrap { max-width: 72rem; margin-inline: auto; padding-inline: var(--gutter); }
+    .skip-link {
+      position: absolute; left: 1rem; top: -4rem; z-index: 50;
+      padding: 0.5rem 0.875rem; border-radius: 6px;
+      background: var(--ink); color: #fff; font-weight: 600; text-decoration: none;
+    }
+    .skip-link:focus { top: 0.75rem; color: #fff; }
+
+    /* Header */
+    .site-header {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(255, 255, 255, 0.94);
+      -webkit-backdrop-filter: saturate(1.4) blur(10px);
+      backdrop-filter: saturate(1.4) blur(10px);
+      border-bottom: 1px solid var(--rule);
+    }
+    .header-bar { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; height: var(--header-h); }
+    .brand { display: flex; align-items: center; gap: 0.6rem; color: var(--ink); text-decoration: none; }
+    .brand:hover { color: var(--ink); }
+    .brand svg { flex: none; width: 2rem; height: 2rem; }
+    .brand-name { font-size: 1rem; font-weight: 700; font-stretch: 108%; line-height: 1.1; }
+    .brand-name small { display: block; margin-top: 0.15rem; color: var(--slate); font-size: 0.75rem; font-weight: 500; font-stretch: 100%; }
+    .nav { display: none; }
+    .nav-link {
+      padding-block: 0.25rem; border-bottom: 2px solid transparent;
+      color: var(--slate); font-size: 0.9375rem; font-weight: 500; text-decoration: none;
+    }
+    .nav-link:hover { color: var(--ink); }
+    .nav-link[aria-current="true"] { color: var(--ink); border-bottom-color: var(--violet); }
+    .menu-toggle {
+      padding: 0.4rem 0.95rem; border: 1px solid var(--rule); border-radius: 999px;
+      background: none; color: var(--ink); cursor: pointer;
+      font: inherit; font-size: 0.9375rem; font-weight: 600;
+    }
+    .mobile-nav { padding: 0.25rem var(--gutter) 1rem; border-top: 1px solid var(--rule); }
+    .mobile-nav a { display: block; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); color: var(--ink); font-weight: 500; text-decoration: none; }
+    .mobile-nav a:last-child { border-bottom: 0; }
+    @media (min-width: 62.5rem) {
+      .nav { display: flex; align-items: center; gap: 1.75rem; }
+      .menu-toggle, .mobile-nav { display: none !important; }
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.55rem;
+      padding: 0.8rem 1.3rem; border-radius: 999px;
+      font-size: 1rem; font-weight: 600; line-height: 1.2; text-decoration: none;
+    }
+    .btn-primary { background: var(--amber); color: var(--night); }
+    .btn-primary:hover { background: var(--amber-light); color: var(--night); }
+    .btn-outline { background: var(--night); color: var(--on-night); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45); }
+    .btn-outline:hover { color: var(--on-night); box-shadow: inset 0 0 0 1px var(--on-night); }
+
+    /* Hero: the background grid doubles as an occupancy map that the robot fills in */
+    .hero {
+      position: relative; overflow: hidden;
+      background-color: var(--night);
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: var(--on-night);
+    }
+    .hero-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .hero-inner { position: relative; display: grid; gap: 2rem; padding-block: clamp(3rem, 7vw, 5.5rem) clamp(2.5rem, 5vw, 4.5rem); }
+    .hero-stage { height: 15rem; }
+    @media (min-width: 64rem) {
+      .hero-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 3rem; }
+      .hero-stage { align-self: stretch; height: auto; min-height: 26rem; }
+    }
+    .hero-title {
+      margin: 0;
+      font-size: clamp(2.75rem, 0.75rem + 6vw, 5.5rem);
+      font-weight: 700; font-stretch: 85%;
+      line-height: 0.95; letter-spacing: -0.02em;
+    }
+    .hero-title span { display: block; }
+    @media (min-width: 40rem) { .hero-title { font-stretch: 100%; } }
+    @media (min-width: 64rem) { .hero-title { font-stretch: 112%; } }
+    .hero-sub { max-width: 30ch; margin: 1.25rem 0 0; font-size: clamp(1.2rem, 1rem + 0.8vw, 1.6rem); font-weight: 400; line-height: 1.3; }
+    .hero-when { margin: 1rem 0 0; color: var(--on-night-muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1.25rem 0 0; padding: 0; list-style: none; }
+    .chips li { padding: 0.15rem 0.7rem; border-radius: 999px; background: var(--night); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); color: var(--on-night-muted); font-size: 0.875rem; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+
+    /* Sections */
+    .section { padding-block: 4rem; }
+    .section + .section { border-top: 1px solid var(--rule); }
+    @media (min-width: 48rem) { .section { padding-block: 4.5rem; } }
+    .section-title { margin: 0 0 1.5rem; font-size: clamp(1.75rem, 1.3rem + 1.2vw, 2.25rem); font-weight: 650; font-stretch: 108%; line-height: 1.15; letter-spacing: -0.01em; }
+    .prose p { max-width: 44rem; margin: 0 0 1rem; }
+    .prose > :last-child { margin-bottom: 0; }
+
+    /* The four workshop areas */
+    .areas { display: grid; margin: 2rem 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+    @media (min-width: 48rem) { .areas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .area { padding: 1.5rem 0; border-bottom: 1px solid var(--rule); }
+    @media (min-width: 48rem) {
+      .area { padding: 1.75rem 2rem 1.75rem 0; }
+      .area:nth-child(even) { padding-left: 2rem; padding-right: 0; border-left: 1px solid var(--rule); }
+    }
+    .area svg { display: block; width: 1.75rem; height: 1.75rem; margin-bottom: 0.75rem; fill: none; stroke: var(--violet); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .area h3 { margin: 0 0 0.35rem; font-size: 1.125rem; font-weight: 650; font-stretch: 104%; line-height: 1.3; }
+    .area p { margin: 0; }
+
+    /* People */
+    .people { display: grid; gap: 2rem 1.25rem; margin: 0; padding: 0; list-style: none; }
+    .people-speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); --avatar: 8.5rem; }
+    @media (min-width: 40rem) { .people-speakers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (min-width: 64rem) { .people-speakers { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+    .people-organizers { display: flex; flex-wrap: wrap; justify-content: center; --avatar: 6.5rem; }
+    .people-organizers > li { width: calc(50% - 0.75rem); }
+    @media (min-width: 30rem) { .people-organizers > li { width: 8.5rem; } }
+    .person { display: flex; flex-direction: column; align-items: center; color: var(--ink); text-align: center; text-decoration: none; }
+    .person:hover { color: var(--ink); }
+    .person-photo { width: 100%; max-width: var(--avatar); height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover; background: var(--mist); }
+    .person-photo.initials { display: flex; align-items: center; justify-content: center; color: var(--violet); font-size: 1.4rem; font-weight: 600; }
+    .person-name { margin-top: 0.75rem; font-weight: 600; line-height: 1.3; }
+    .people-organizers .person-name { font-size: 0.9375rem; }
+    .person:hover .person-name { color: var(--violet); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+    .person-aff { margin-top: 0.15rem; color: var(--slate); font-size: 0.9375rem; line-height: 1.35; }
+    .people-organizers .person-aff { font-size: 0.875rem; }
+    .person-role { margin-top: 0.35rem; padding: 0 0.5rem; border-radius: 4px; background: var(--violet-soft); color: var(--violet-deep); font-size: 0.75rem; font-weight: 600; line-height: 1.6; }
+
+    /* Schedule */
+    .schedule { width: 100%; margin-top: 1.75rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .schedule th { padding: 0 0.75rem 0.6rem; border-bottom: 1px solid var(--ink); color: var(--slate); font-size: 0.875rem; font-weight: 600; text-align: left; }
+    .schedule td { padding: 0.8rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+    .schedule td:first-child { width: 1%; padding-right: 1.25rem; color: var(--slate); white-space: nowrap; }
+    .schedule .is-break td { background: var(--mist); }
+    .schedule .is-feature td { background: var(--tag-bg); }
+    .slot { display: flex; align-items: center; gap: 0.85rem; min-height: 2.5rem; }
+    .slot-photo { flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; background: var(--mist); }
+    .slot-photo.initials { display: flex; align-items: center; justify-content: center; color: var(--violet); font-size: 0.75rem; font-weight: 600; }
+    .slot-spacer { flex: none; width: 2.5rem; }
+    .slot-main { display: block; font-weight: 600; line-height: 1.3; }
+    .slot-sub { display: block; color: var(--slate); font-size: 0.9375rem; line-height: 1.35; }
+    .is-break .slot-main { color: var(--slate); font-weight: 400; }
+    @media (max-width: 30rem) {
+      .schedule td { padding-inline: 0.5rem; }
+      .schedule td:first-child { padding-right: 0.75rem; font-size: 0.9375rem; }
+      .slot { gap: 0.65rem; }
+      .slot-photo, .slot-spacer { width: 2rem; height: 2rem; }
+    }
+
+    /* Panel and debate */
+    .discussions { display: grid; gap: 1.25rem; margin-bottom: 1.75rem; }
+    @media (min-width: 48rem) { .discussions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .discussion { padding: 1.5rem; border-radius: 12px; background: var(--mist); }
+    .discussion-time { margin: 0; color: var(--slate); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+    .discussion h3 { margin: 0.25rem 0 0.5rem; font-size: 1.25rem; font-weight: 650; font-stretch: 104%; }
+    .discussion p { margin: 0; }
+    .debate { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
+    .debate-side { padding: 0.75rem; border-radius: 8px; background: #fff; font-weight: 600; line-height: 1.3; text-align: center; }
+    .debate-side:first-child { box-shadow: inset 0 0 0 2px var(--violet); }
+    .debate-side:last-child { box-shadow: inset 0 0 0 2px var(--amber); }
+    .debate-vs { color: var(--slate); font-size: 0.875rem; }
+
+    /* Call for papers */
+    .placeholder { max-width: 44rem; margin: 1.5rem 0 0; padding: 1rem 1.25rem; border: 1.5px dashed var(--rule); border-radius: 10px; color: var(--slate); }
+
+    /* Contact */
+    .contacts { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin: 0; padding: 0; list-style: none; }
+    .contacts li { display: flex; align-items: center; gap: 0.85rem; }
+    .contacts .slot-photo { width: 3rem; height: 3rem; }
+    .contacts strong { display: block; font-weight: 600; line-height: 1.3; }
+
+    /* Footer */
+    .site-footer { background: var(--night); color: var(--on-night-muted); font-size: 0.9375rem; }
+    .site-footer a { color: var(--on-night); }
+    .site-footer a:hover { color: var(--amber-light); }
+    .footer-inner { padding-block: 2.5rem; }
+    .footer-inner p { margin: 0; }
+  </style>
+</head>
+
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-bar">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="6" width="20" height="20" rx="5" fill="#17113d"/><circle cx="12" cy="16" r="3.2" fill="#fca636"/><path d="M22 16h6M28 12v8M28 12h3M28 20h3" fill="none" stroke="#17113d" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <span class="brand-name">Beyond Tabletop<small>ICRA 2027 Workshop</small></span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a class="nav-link" href="#about">About</a>
+      <a class="nav-link" href="#speakers">Speakers</a>
+      <a class="nav-link" href="#schedule">Schedule</a>
+      <a class="nav-link" href="#cfp">Call for papers</a>
+      <a class="nav-link" href="#organizers">Organizers</a>
+      <a class="nav-link" href="#contact">Contact</a>
+    </nav>
+    <button class="menu-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu</button>
+  </div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Sections" hidden>
+    <a href="#about">About</a>
+    <a href="#speakers">Speakers</a>
+    <a href="#schedule">Schedule</a>
+    <a href="#cfp">Call for papers</a>
+    <a href="#organizers">Organizers</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <canvas class="hero-map" aria-hidden="true"></canvas>
+  <div class="wrap hero-inner">
+    <div class="hero-copy">
+      <h1 class="hero-title"><span>Beyond</span> <span>Tabletop</span></h1>
+      <p class="hero-sub">Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation</p>
+      <p class="hero-when">A full-day workshop at ICRA 2027 in Seoul</p>
+      <ul class="chips" aria-label="Keywords">
+        <li>Mobile manipulation</li>
+        <li>spatial AI</li>
+        <li>navigation and SLAM</li>
+        <li>whole-body control</li>
+        <li>robot learning</li>
+      </ul>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#cfp">Call for papers</a>
+        <a class="btn btn-outline" href="#schedule">See the schedule</a>
+      </div>
+    </div>
+    <div class="hero-stage" aria-hidden="true"></div>
+  </div>
+</section>
+
+<main class="wrap" id="main">
+
+  <section class="section" id="about">
+    <h2 class="section-title">About</h2>
+    <div class="prose">
+      <p>For a robot to be truly general, it must be able to manipulate more than an arm’s length away. Prior research has approached this goal from two directions: navigation and SLAM researchers build systems with spatial understanding capabilities that enable robots to move through large environments, while manipulation researchers develop robot policies, skills, and controllers for contact-rich interactions. Mobile manipulation sits at their intersection, but existing approaches still often treat navigation and manipulation as separate components instead of integrating them into a unified system.</p>
+      <p>Recent advances in spatial perception, robot foundation models, scalable data collection, whole-body control, as well as increasingly accessible wheeled and legged platforms make it possible to study these capabilities together on meaningful real-world tasks. As robots move beyond tabletop settings, they must jointly decide where to move, what to observe, and how to interact over long horizons.</p>
+      <p>In this workshop, we bring together researchers in hardware, spatial AI, control, planning, and robot learning to answer the following questions:</p>
+    </div>
+    <ul class="areas">
+      <li class="area">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 9l8-3 8 3 8-3v17l-8 3-8-3-8 3z"/><path d="M12 6v17M20 9v17"/></svg>
+        <h3>Spatial understanding</h3>
+        <p>How should robots represent, actively observe, and remember changing environments to support both global reasoning and local interaction?</p>
+      </li>
+      <li class="area">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v8"/><path d="M8 11h16"/><path d="M10 11v8l3 7M22 11v8l-3 7"/></svg>
+        <h3>Whole-body manipulation</h3>
+        <p>How can control and learning enable precise, coordinated interaction, generalizable skills, and recovery over long horizons?</p>
+      </li>
+      <li class="area">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="8" cy="9" r="4"/><rect x="19" y="19" width="9" height="9" rx="2"/><path d="M12 9h4a4 4 0 0 1 4 4v6"/></svg>
+        <h3>Connecting reasoning and action</h3>
+        <p>Which capabilities should be learned jointly, and which should remain modular? What role should LLMs and agentic frameworks play in connecting spatial reasoning with physical skills?</p>
+      </li>
+      <li class="area">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l10 4v7c0 6-4.5 10-10 12C10.5 25 6 21 6 15V8z"/><path d="M11.5 15.5l3 3 6-6"/></svg>
+        <h3>Enabling reliable systems</h3>
+        <p>What robot designs, data collection methods, and evaluation practices support reliable deployment across platforms and/or safe interaction with people?</p>
+      </li>
+    </ul>
+    <div class="prose">
+      <p>The workshop brings these questions together around complete mobile manipulation systems, connecting communities that often meet separately. ICRA’s breadth makes it particularly suited to this discussion. Expected outcomes include shared evaluation priorities, new collaborations, and research directions for robots that can seamlessly perceive, move, and interact. The workshop aligns most closely with the RAS TCs on Mobile Manipulation, Robot Learning, and Computer &amp; Robot Vision.</p>
+    </div>
+  </section>
+
+  <section class="section" id="speakers">
+    <h2 class="section-title">Invited speakers</h2>
+    <ul class="people people-speakers">
+      <li><a class="person" href="https://ericyi.github.io/">
+        <img class="person-photo" src="./static/images/people/liyi.jpg" alt="" width="400" height="400" loading="lazy" data-initials="LY">
+        <span class="person-name">Li Yi</span>
+        <span class="person-aff">Tsinghua University</span>
+      </a></li>
+      <li><a class="person" href="https://natanaso.github.io/">
+        <img class="person-photo" src="./static/images/people/nikolay.jpg" alt="" width="400" height="400" loading="lazy" data-initials="NA">
+        <span class="person-name">Nikolay Atanasov</span>
+        <span class="person-aff">UC San Diego</span>
+      </a></li>
+      <li><a class="person" href="https://zhengyiluo.github.io/">
+        <img class="person-photo" src="./static/images/people/zhengyi.jpg" alt="" width="400" height="400" loading="lazy" data-initials="ZL">
+        <span class="person-name">Zhengyi Luo</span>
+        <span class="person-aff">NVIDIA</span>
+      </a></li>
+      <li><a class="person" href="https://lauramsmith.github.io/">
+        <img class="person-photo" src="./static/images/people/laura.jpg" alt="" width="400" height="400" loading="lazy" data-initials="LS">
+        <span class="person-name">Laura Smith</span>
+        <span class="person-aff">Physical Intelligence</span>
+      </a></li>
+      <li><a class="person" href="https://contactrika.github.io/">
+        <img class="person-photo" src="./static/images/people/rika.jpg" alt="" width="400" height="400" loading="lazy" data-initials="RA">
+        <span class="person-name">Rika Antonova</span>
+        <span class="person-aff">University of Cambridge</span>
+      </a></li>
+      <li><a class="person" href="https://shurans.github.io/">
+        <img class="person-photo" src="./static/images/people/shuran.jpg" alt="" width="400" height="400" loading="lazy" data-initials="SS">
+        <span class="person-name">Shuran Song</span>
+        <span class="person-aff">Stanford University</span>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="section" id="schedule">
+    <h2 class="section-title">Schedule</h2>
+    <div class="prose">
+      <p>The full-day program will combine invited talks, contributed spotlights, poster sessions, a morning panel, and an afternoon debate. Invited speakers will be asked to address the workshop’s shared questions, bringing complementary perspectives from academia and industry.</p>
+    </div>
+    <table class="schedule">
+      <thead>
+        <tr><th scope="col">Time</th><th scope="col">Activity</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>08:30–08:40</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Opening remarks</span></span></td>
+        </tr>
+        <tr>
+          <td>08:40–09:15</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/liyi.jpg" alt="" loading="lazy" data-initials="LY"><span><span class="slot-main">Li Yi</span><span class="slot-sub">Tsinghua University</span></span></span></td>
+        </tr>
+        <tr>
+          <td>09:15–09:50</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/nikolay.jpg" alt="" loading="lazy" data-initials="NA"><span><span class="slot-main">Nikolay Atanasov</span><span class="slot-sub">UC San Diego</span></span></span></td>
+        </tr>
+        <tr>
+          <td>09:50–10:10</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Student talks I</span></span></td>
+        </tr>
+        <tr class="is-break">
+          <td>10:10–11:10</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Poster session I and coffee break</span></span></td>
+        </tr>
+        <tr>
+          <td>11:10–11:45</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/zhengyi.jpg" alt="" loading="lazy" data-initials="ZL"><span><span class="slot-main">Zhengyi Luo</span><span class="slot-sub">NVIDIA (whole-body control and loco-manipulation)</span></span></span></td>
+        </tr>
+        <tr class="is-feature">
+          <td>11:45–12:30</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Panel: connecting spatial understanding and physical interaction</span></span></td>
+        </tr>
+        <tr class="is-break">
+          <td>12:30–14:00</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Lunch</span></span></td>
+        </tr>
+        <tr>
+          <td>14:00–14:35</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/laura.jpg" alt="" loading="lazy" data-initials="LS"><span><span class="slot-main">Laura Smith</span><span class="slot-sub">Physical Intelligence (robot foundation models)</span></span></span></td>
+        </tr>
+        <tr>
+          <td>14:35–15:10</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/rika.jpg" alt="" loading="lazy" data-initials="RA"><span><span class="slot-main">Rika Antonova</span><span class="slot-sub">University of Cambridge</span></span></span></td>
+        </tr>
+        <tr>
+          <td>15:10–15:30</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Student talks II</span></span></td>
+        </tr>
+        <tr class="is-break">
+          <td>15:30–16:10</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Poster session II and coffee break</span></span></td>
+        </tr>
+        <tr>
+          <td>16:10–16:45</td>
+          <td><span class="slot"><img class="slot-photo" src="./static/images/people/shuran.jpg" alt="" loading="lazy" data-initials="SS"><span><span class="slot-main">Shuran Song</span><span class="slot-sub">Stanford University</span></span></span></td>
+        </tr>
+        <tr>
+          <td>16:45–17:00</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Sponsor talk — hardware platforms for mobile manipulation</span></span></td>
+        </tr>
+        <tr class="is-feature">
+          <td>17:00–17:45</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Debate: unified learned policies versus agentic, modular systems</span></span></td>
+        </tr>
+        <tr>
+          <td>17:45–18:00</td>
+          <td><span class="slot"><span class="slot-spacer"></span><span class="slot-main">Awards and closing remarks</span></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="section" id="discussion">
+    <h2 class="section-title">Panel and debate</h2>
+    <div class="discussions">
+      <div class="discussion">
+        <p class="discussion-time">11:45–12:30</p>
+        <h3>Panel</h3>
+        <p>connecting spatial understanding and physical interaction</p>
+      </div>
+      <div class="discussion">
+        <p class="discussion-time">17:00–17:45</p>
+        <h3>Debate</h3>
+        <div class="debate">
+          <span class="debate-side">unified learned policies</span>
+          <span class="debate-vs">versus</span>
+          <span class="debate-side">agentic, modular systems</span>
+        </div>
+      </div>
+    </div>
+    <div class="prose">
+      <p>Questions collected from participants and the broader community will guide the panel and debate, including the hardware, data, evaluation, and safety considerations underlying different approaches. Attendees will vote before and after the debate and have opportunities to share their views. Closing remarks will summarize shared challenges and promising research directions.</p>
+    </div>
+  </section>
+
+  <section class="section" id="cfp">
+    <h2 class="section-title">Call for papers</h2>
+    <div class="prose">
+      <p>We will solicit contributed papers across the <a href="#about">four workshop areas</a>. Submissions will be reviewed for relevance, technical quality, and potential to stimulate discussion. Accepted papers will be presented as posters and shared on OpenReview, with selected student contributions receiving spotlight talks.</p>
+      <p>The call for papers will accept full papers and extended abstracts, giving preliminary work and emerging researchers an entry point.</p>
+    </div>
+    <p class="placeholder">Important dates and the submission link will be posted here.</p>
+  </section>
+
+  <section class="section" id="organizers">
+    <h2 class="section-title">Organizers</h2>
+    <ul class="people people-organizers">
+      <li><a class="person" href="https://seungchan-kim.github.io/">
+        <img class="person-photo" src="./static/images/people/seungchan.jpg" alt="" width="400" height="400" loading="lazy" data-initials="SK">
+        <span class="person-name">Seungchan Kim</span>
+        <span class="person-aff">Carnegie Mellon University</span>
+        <span class="person-role">Co-lead</span>
+      </a></li>
+      <li><a class="person" href="https://yjy0625.github.io">
+        <img class="person-photo" src="./static/images/people/jingyun.jpg" alt="" width="350" height="350" loading="lazy" data-initials="JY">
+        <span class="person-name">Jingyun Yang</span>
+        <span class="person-aff">Stanford University</span>
+        <span class="person-role">Co-lead</span>
+      </a></li>
+      <li><a class="person" href="https://www.dianwang.io/">
+        <img class="person-photo" src="./static/images/people/dian.jpg" alt="" width="400" height="400" loading="lazy" data-initials="DW">
+        <span class="person-name">Dian Wang</span>
+        <span class="person-aff">University of Macau</span>
+      </a></li>
+      <li><a class="person" href="https://sunghwan.me/">
+        <img class="person-photo" src="./static/images/people/sunghwan.jpg" alt="" width="400" height="400" loading="lazy" data-initials="SK">
+        <span class="person-name">Sunghwan Kim</span>
+        <span class="person-aff">UC San Diego</span>
+      </a></li>
+      <li><a class="person" href="https://mahis.life/">
+        <img class="person-photo" src="./static/images/people/mahi.jpg" alt="" width="300" height="300" loading="lazy" data-initials="MS">
+        <span class="person-name">Nur Muhammad “Mahi” Shafiullah</span>
+        <span class="person-aff">UC Berkeley / Amazon FAR</span>
+      </a></li>
+      <li><a class="person" href="https://xxm19.github.io/">
+        <img class="person-photo" src="./static/images/people/xiaomeng.jpg" alt="" width="400" height="400" loading="lazy" data-initials="XX">
+        <span class="person-name">Xiaomeng Xu</span>
+        <span class="person-aff">Stanford University</span>
+      </a></li>
+      <li><a class="person" href="https://wenlixiao.com/">
+        <img class="person-photo" src="./static/images/people/wenli.jpg" alt="" width="400" height="400" loading="lazy" data-initials="WX">
+        <span class="person-name">Wenli Xiao</span>
+        <span class="person-aff">Carnegie Mellon University</span>
+      </a></li>
+      <li><a class="person" href="https://shahrutav.github.io/">
+        <img class="person-photo" src="./static/images/people/rutav-upper.jpg" alt="" width="400" height="400" loading="lazy" data-initials="RS">
+        <span class="person-name">Rutav Shah</span>
+        <span class="person-aff">UT Austin</span>
+      </a></li>
+      <li><a class="person" href="https://ycx424.wixsite.com/xiaoyc">
+        <img class="person-photo" src="./static/images/people/yuchen.jpg" alt="" width="400" height="400" loading="lazy" data-initials="YX">
+        <span class="person-name">Yuchen Xiao</span>
+        <span class="person-aff">Unitree Robotics</span>
+      </a></li>
+      <li><a class="person" href="https://www.yutianchen.blog/">
+        <img class="person-photo" src="./static/images/people/yutian.jpg" alt="" width="400" height="400" loading="lazy" data-initials="YC">
+        <span class="person-name">Yutian Chen</span>
+        <span class="person-aff">Stanford University</span>
+      </a></li>
+      <li><a class="person" href="https://wenlonghuang.com/">
+        <img class="person-photo" src="./static/images/people/wenlong.jpg" alt="" width="400" height="400" loading="lazy" data-initials="WH">
+        <span class="person-name">Wenlong Huang</span>
+        <span class="person-aff">Stanford University</span>
+      </a></li>
+      <li><a class="person" href="https://sairlab.org/chenw/">
+        <img class="person-photo" src="./static/images/people/chen.jpg" alt="" width="400" height="400" loading="lazy" data-initials="CW">
+        <span class="person-name">Chen Wang</span>
+        <span class="person-aff">University at Buffalo</span>
+      </a></li>
+      <li><a class="person" href="https://www.tianyulun.com/">
+        <img class="person-photo" src="./static/images/people/yulun.jpg" alt="" width="400" height="400" loading="lazy" data-initials="YT">
+        <span class="person-name">Yulun Tian</span>
+        <span class="person-aff">University of Michigan</span>
+      </a></li>
+    </ul>
+  </section>
+
+  <section class="section" id="contact">
+    <h2 class="section-title">Contact</h2>
+    <ul class="contacts">
+      <li>
+        <img class="slot-photo" src="./static/images/people/seungchan.jpg" alt="" loading="lazy" data-initials="SK">
+        <span><strong>Seungchan Kim</strong><a href="mailto:seungch2@andrew.cmu.edu">seungch2@andrew.cmu.edu</a></span>
+      </li>
+      <li>
+        <img class="slot-photo" src="./static/images/people/jingyun.jpg" alt="" loading="lazy" data-initials="JY">
+        <span><strong>Jingyun Yang</strong><a href="mailto:jingyuny@stanford.edu">jingyuny@stanford.edu</a></span>
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <p>Beyond Tabletop, a workshop at <a href="https://2027.ieee-icra.org/">ICRA 2027</a> in Seoul.</p>
+  </div>
+</footer>
+
+<script>
+  // Mobile nav toggle
+  (function () {
+    var toggle = document.getElementById('nav-toggle');
+    var menu = document.getElementById('mobile-nav');
+    function setOpen(open) {
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? 'Close' : 'Menu';
+      menu.hidden = !open;
+    }
+    toggle.addEventListener('click', function () {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+    menu.addEventListener('click', function (e) {
+      if (e.target.closest('a')) setOpen(false);
+    });
+  })();
+
+  // Underline the nav link for the section currently in view
+  (function () {
+    if (!('IntersectionObserver' in window)) return;
+    var links = {};
+    document.querySelectorAll('.nav-link[href^="#"]').forEach(function (a) {
+      links[a.getAttribute('href').slice(1)] = a;
+    });
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        Object.keys(links).forEach(function (id) { links[id].removeAttribute('aria-current'); });
+        if (links[entry.target.id]) links[entry.target.id].setAttribute('aria-current', 'true');
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    document.querySelectorAll('main section[id]').forEach(function (s) { observer.observe(s); });
+  })();
+
+  // Show initials when a photo is missing
+  document.querySelectorAll('img[data-initials]').forEach(function (img) {
+    function swap() {
+      var span = document.createElement('span');
+      span.className = img.className + ' initials';
+      span.textContent = img.dataset.initials;
+      span.setAttribute('aria-hidden', 'true');
+      img.replaceWith(span);
+    }
+    if (img.complete && img.naturalWidth === 0) swap();
+    else img.addEventListener('error', swap);
+  });
+</script>
+
+<script>
+  // Hero: a top-down mobile manipulator builds an occupancy map with its lidar,
+  // plans a path out of the room with the table, and picks an object off a shelf.
+  // The map cells line up with the hero's background grid.
+  (function () {
+    const hero = document.querySelector('.hero');
+    const canvas = hero.querySelector('.hero-map');
+    const stage = hero.querySelector('.hero-stage');
+    const ctx = canvas.getContext && canvas.getContext('2d');
+    if (!ctx) return;
+
+    const CELL = 28, RANGE = 9, RAYS = 180, SPEED = 3.2;
+    const FILL = { wall: 'rgba(201, 195, 230, 0.5)', table: '#e16462', shelf: '#b12a90', object: '#b12a90', sofa: '#8f0da4' };
+    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    let width = 0, height = 0, ox = 0, oy = 0, W = 0, H = 0;
+    let grid, seen, obj, way, robot, rays = [], seg = 0, planned = 0, showRays = true;
+    let run = 0, instant = reduceMotion;
+
+    function tween(ms, fn, id) {
+      return new Promise(resolve => {
+        // Without animation, still step through so the lidar sees along the whole path
+        if (instant) { [0.25, 0.5, 0.75, 1].forEach(fn); resolve(); return; }
+        const start = performance.now();
+        requestAnimationFrame(function step(now) {
+          if (id !== run) { resolve(); return; }
+          const t = Math.min((now - start) / ms, 1);
+          fn(easeInOut(t));
+          if (t < 1) requestAnimationFrame(step); else resolve();
+        });
+      });
+    }
+
+    const blocked = (x, y) => x < 0 || y < 0 || x >= W || y >= H || grid[y][x] !== null;
+
+    function planFloor() {
+      grid = Array.from({ length: H }, () => Array(W).fill(null));
+      seen = Array.from({ length: H }, () => Array(W).fill(0));
+      const set = (x, y, kind) => { if (x >= 0 && y >= 0 && x < W && y < H) grid[y][x] = kind; };
+      for (let x = 0; x < W; x++) { set(x, 0, 'wall'); set(x, H - 1, 'wall'); }
+      for (let y = 0; y < H; y++) { set(0, y, 'wall'); set(W - 1, y, 'wall'); }
+      // Two rooms joined by a three-cell doorway
+      const divider = Math.floor(W / 2), door = Math.floor(H / 2) - 1;
+      for (let y = 1; y < H - 1; y++) if (y < door || y > door + 2) set(divider, y, 'wall');
+      // First room: a table. Second room: a shelf with the target object, and a sofa if there is space
+      for (let x = 2; x <= Math.max(2, divider - 3); x++) for (let y = H - 4; y <= H - 3; y++) set(x, y, 'table');
+      const shelfEnd = Math.max(3, Math.floor(H * 0.45));
+      for (let y = 1; y <= shelfEnd; y++) set(W - 2, y, 'shelf');
+      obj = { x: W - 2, y: Math.round((1 + shelfEnd) / 2) };
+      set(obj.x, obj.y, 'object');
+      if (H >= 10) for (let x = divider + 2; x <= W - 4; x++) for (let y = H - 3; y <= H - 2; y++) set(x, y, 'sofa');
+    }
+
+    // A* on the grid, with a small penalty for hugging obstacles
+    function astar(s, g) {
+      const key = (x, y) => y * W + x;
+      const nearObstacle = (x, y) => DIRS.some(([dx, dy]) => blocked(x + dx, y + dy));
+      const open = [{ x: s.x, y: s.y, f: 0 }], cost = new Map([[key(s.x, s.y), 0]]), from = new Map();
+      while (open.length) {
+        open.sort((a, b) => a.f - b.f);
+        const cur = open.shift();
+        if (cur.x === g.x && cur.y === g.y) {
+          const out = [{ x: g.x, y: g.y }];
+          let k = key(g.x, g.y);
+          while (from.has(k)) { k = from.get(k); out.unshift({ x: k % W, y: Math.floor(k / W) }); }
+          return out;
+        }
+        for (const [dx, dy] of DIRS) {
+          const nx = cur.x + dx, ny = cur.y + dy;
+          if (blocked(nx, ny) || (dx && dy && (blocked(cur.x + dx, cur.y) || blocked(cur.x, cur.y + dy)))) continue;
+          const c = cost.get(key(cur.x, cur.y)) + (dx && dy ? Math.SQRT2 : 1) + (nearObstacle(nx, ny) ? 1.5 : 0);
+          if (c < (cost.get(key(nx, ny)) ?? Infinity)) {
+            cost.set(key(nx, ny), c);
+            from.set(key(nx, ny), key(cur.x, cur.y));
+            open.push({ x: nx, y: ny, f: c + Math.hypot(g.x - nx, g.y - ny) });
+          }
+        }
+      }
+      return [s, g];
+    }
+
+    // Shortcut the grid path wherever a straight line keeps clear of obstacles
+    function clearLine(a, b) {
+      const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.1);
+      for (let i = 0; i <= n; i++) {
+        const px = lerp(a.x, b.x, i / n), py = lerp(a.y, b.y, i / n);
+        for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) {
+          const x = Math.floor(px) + k, y = Math.floor(py) + j;
+          if (!blocked(x, y)) continue;
+          const dx = Math.max(x - px, 0, px - x - 1), dy = Math.max(y - py, 0, py - y - 1);
+          if (Math.hypot(dx, dy) < 0.6) return false;
+        }
+      }
+      return true;
+    }
+    function shortcut(pts) {
+      const out = [pts[0]];
+      for (let i = 0; i < pts.length - 1;) {
+        let j = pts.length - 1;
+        while (j > i + 1 && !clearLine(pts[i], pts[j])) j--;
+        out.push(pts[j]);
+        i = j;
+      }
+      return out;
+    }
+
+    function build() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const box = hero.getBoundingClientRect();
+      width = box.width; height = box.height;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const s = stage.getBoundingClientRect();
+      const left = s.left - box.left, top = s.top - box.top;
+      ox = Math.ceil(left / CELL) * CELL;
+      oy = Math.ceil(top / CELL) * CELL;
+      W = clamp(Math.floor((left + s.width - ox) / CELL), 11, 22);
+      H = clamp(Math.floor((top + s.height - oy) / CELL), 8, 15);
+
+      planFloor();
+      const start = { x: 2, y: 2 }, goal = { x: W - 4, y: obj.y };
+      way = shortcut(astar(start, goal).map(c => ({ x: c.x + 0.5, y: c.y + 0.5 })));
+      robot = { x: start.x + 0.5, y: start.y + 0.5, th: 0, arm: 0, grip: 1, holding: false };
+      rays = []; seg = 0; planned = 0; showRays = true;
+    }
+
+    // Lidar: cast rays from the robot, marking free cells and the first occupied cell on each ray
+    function sense(range) {
+      const now = performance.now();
+      rays = [];
+      for (let k = 0; k < RAYS; k++) {
+        const a = (k / RAYS) * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a);
+        let d = 0;
+        while (d < range) {
+          d += 0.2;
+          const x = Math.floor(robot.x + dx * d), y = Math.floor(robot.y + dy * d);
+          if (x < 0 || y < 0 || x >= W || y >= H) break;
+          if (!seen[y][x]) seen[y][x] = now;
+          if (grid[y][x]) break;
+        }
+        rays.push(Math.min(d, range));
+      }
+    }
+
+    const px = x => ox + x * CELL;
+    const py = y => oy + y * CELL;
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function polyline(pts, limit = Infinity) {
+      ctx.beginPath();
+      ctx.moveTo(px(pts[0].x), py(pts[0].y));
+      let left = limit;
+      for (let i = 1; i < pts.length && left > 0; i++) {
+        const a = pts[i - 1], b = pts[i], d = Math.hypot(b.x - a.x, b.y - a.y), t = Math.min(1, left / d);
+        ctx.lineTo(px(lerp(a.x, b.x, t)), py(lerp(a.y, b.y, t)));
+        left -= d;
+      }
+      ctx.stroke();
+    }
+    function drawObject(x, y) {
+      ctx.fillStyle = '#fcce25';
+      ctx.strokeStyle = '#17113d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 0.2 * CELL, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function draw() {
+      const now = performance.now();
+      ctx.clearRect(0, 0, width, height);
+
+      // Map: revealed cells fade in; free space is a faint tint, obstacles are solid
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        if (!seen[y][x]) continue;
+        ctx.globalAlpha = instant ? 1 : clamp((now - seen[y][x]) / 350, 0, 1);
+        const kind = grid[y][x];
+        if (kind) { ctx.fillStyle = FILL[kind]; roundRect(px(x) + 4, py(y) + 4, CELL - 7, CELL - 7, 4); ctx.fill(); }
+        else { ctx.fillStyle = 'rgba(255, 255, 255, 0.06)'; ctx.fillRect(px(x) + 1, py(y) + 1, CELL - 1, CELL - 1); }
+      }
+      ctx.globalAlpha = 1;
+
+      if (showRays && rays.length) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        rays.forEach((d, k) => {
+          const a = (k / RAYS) * Math.PI * 2;
+          ctx.moveTo(px(robot.x), py(robot.y));
+          ctx.lineTo(px(robot.x + Math.cos(a) * d), py(robot.y + Math.sin(a) * d));
+        });
+        ctx.stroke();
+      }
+
+      // Planned path: travelled part faint, remaining part dashed
+      if (planned > 0) {
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 2;
+        if (seg > 0 || robot.x !== way[0].x || robot.y !== way[0].y) {
+          ctx.strokeStyle = 'rgba(252, 166, 54, 0.3)';
+          ctx.setLineDash([]);
+          polyline([...way.slice(0, seg + 1), robot]);
+        }
+        ctx.strokeStyle = '#fca636';
+        ctx.setLineDash([2, 6]);
+        const ahead = [robot, ...way.slice(seg + 1)];
+        const total = ahead.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - ahead[i].x, p.y - ahead[i].y), 0);
+        polyline(ahead, total * planned);
+        ctx.setLineDash([]);
+      }
+
+      // Target object, with a ring once it has been seen and a path planned to it
+      if (!robot.holding && seen[obj.y][obj.x]) {
+        const cx = px(obj.x + 0.5), cy = py(obj.y + 0.5);
+        if (planned > 0) {
+          ctx.strokeStyle = 'rgba(252, 206, 37, 0.7)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([3, 4]);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 0.48 * CELL, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        drawObject(cx, cy);
+      }
+
+      // Robot: square base, lidar at the center, telescoping arm with a two-finger gripper
+      const half = 0.6 * CELL, tip = half + robot.arm * CELL, g = (0.1 + 0.14 * robot.grip) * CELL;
+      ctx.save();
+      ctx.translate(px(robot.x), py(robot.y));
+      ctx.rotate(robot.th);
+      ctx.strokeStyle = '#fff';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 3;
+      if (robot.arm > 0.02) { ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(tip, 0); ctx.stroke(); }
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(tip, -g); ctx.lineTo(tip, g);
+      ctx.moveTo(tip, -g); ctx.lineTo(tip + 0.26 * CELL, -g);
+      ctx.moveTo(tip, g); ctx.lineTo(tip + 0.26 * CELL, g);
+      ctx.stroke();
+      ctx.fillStyle = '#17113d';
+      ctx.lineWidth = 2;
+      roundRect(-half, -half, 2 * half, 2 * half, 0.22 * CELL);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fca636';
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.16 * CELL, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      if (robot.holding) {
+        const r = half / CELL + robot.arm + 0.15;
+        drawObject(px(robot.x + Math.cos(robot.th) * r), py(robot.y + Math.sin(robot.th) * r));
+      }
+    }
+
+    function turn(target, id) {
+      const from = robot.th;
+      let d = target - from;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      if (Math.abs(d) < 0.01) return Promise.resolve();
+      return tween(150 + Math.abs(d) * 160, t => { robot.th = from + d * t; draw(); }, id);
+    }
+
+    async function play(id) {
+      const live = () => id === run;
+      // 1. Sense from the start pose; the mapped area grows outward
+      await tween(1200, t => { sense(RANGE * t); draw(); }, id);
+      if (!live()) return;
+      // 2. Plan a path to the shelf in the next room
+      await tween(600, t => { planned = t; draw(); }, id);
+      if (!live()) return;
+      // 3. Drive, mapping along the way
+      for (let i = 1; i < way.length; i++) {
+        seg = i - 1;
+        const a = way[i - 1], b = way[i];
+        await turn(Math.atan2(b.y - a.y, b.x - a.x), id);
+        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        await tween((d / SPEED) * 1000, t => { robot.x = lerp(a.x, b.x, t); robot.y = lerp(a.y, b.y, t); sense(RANGE); draw(); }, id);
+        if (!live()) return;
+      }
+      seg = way.length - 1;
+      await turn(0, id);
+      // 4. Reach, grasp, and pull the object back
+      const reach = obj.x + 0.5 - robot.x - 0.6 - 0.15;
+      await tween(700, t => { robot.arm = reach * t; draw(); }, id);
+      await tween(220, t => { robot.grip = 1 - t; draw(); }, id);
+      if (!live()) return;
+      robot.holding = true;
+      grid[obj.y][obj.x] = 'shelf';
+      await tween(700, t => { robot.arm = lerp(reach, 0.2, t); draw(); }, id);
+      showRays = false;
+      await tween(400, () => draw(), id);
+    }
+
+    function start(animate) {
+      run++;
+      instant = reduceMotion || !animate;
+      build();
+      play(run);
+    }
+
+    const fontsReady = document.fonts
+      ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))])
+      : Promise.resolve();
+    fontsReady.then(() => {
+      start(true);
+      if (!('ResizeObserver' in window)) return;
+      let frame = 0;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          const box = hero.getBoundingClientRect();
+          if (Math.abs(box.width - width) < 1 && Math.abs(box.height - height) < 1) return;
+          start(false);
+        });
+      }).observe(hero);
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ICRA 2026 Beyond Teleoperation — Best Paper Award</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #e8e4dc; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #2a2620;
+    display: flex;
+    justify-content: center;
+  }
+  @media screen {
+    body { padding: 12mm 0; }
+  }
+  .cert {
+    width: 297mm;
+    height: 210mm;
+    background: #fbf5e9;
+    background-image:
+      radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.7) 0%, transparent 55%),
+      radial-gradient(ellipse at 70% 75%, rgba(180,140,90,0.05) 0%, transparent 60%);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Outer ornate border (double) */
+  .cert::before {
+    content: '';
+    position: absolute;
+    inset: 6mm;
+    border: 2px solid #8a6a3e;
+    pointer-events: none;
+  }
+  .cert::after {
+    content: '';
+    position: absolute;
+    inset: 9mm;
+    border: 1px solid #8a6a3e;
+    pointer-events: none;
+  }
+  .inner {
+    position: absolute;
+    inset: 14mm 16mm 0 16mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .icra {
+    height: 18mm;
+    margin-bottom: 6mm;
+  }
+  .workshop-line {
+    font-size: 11pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b5a3f;
+  }
+  .workshop-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22pt;
+    margin-top: 2mm;
+    color: #2a2620;
+    font-weight: 500;
+  }
+  .award-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 56pt;
+    font-weight: 500;
+    color: #2a2620;
+    margin-top: 8mm;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .presented {
+    margin-top: 7mm;
+    font-size: 12pt;
+    color: #5a4a30;
+  }
+  .recipient-line {
+    margin-top: 4mm;
+    width: 75%;
+    border-bottom: 1px solid #8a6a3e;
+    height: 14mm;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26pt;
+    color: #2a2620;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+  }
+  .placeholder { color: #c4b598; font-style: italic; font-size: 16pt; }
+  .reason {
+    margin-top: 6mm;
+    font-size: 12pt;
+    color: #5a4a30;
+  }
+  .paper-line {
+    margin-top: 3mm;
+    width: 80%;
+    border-bottom: 1px solid #8a6a3e;
+    height: 11mm;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16pt;
+    color: #2a2620;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .closing {
+    margin-top: 6mm;
+    font-size: 11pt;
+    color: #5a4a30;
+    max-width: 75%;
+    line-height: 1.5;
+  }
+  /* Bottom sponsor row on the cert paper */
+  .sponsors {
+    position: absolute;
+    left: 14mm;
+    right: 14mm;
+    bottom: 16mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16mm;
+  }
+  .sponsors .label {
+    font-size: 9pt;
+    color: #6b5a3f;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+  .lw {
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+  }
+  .lw img { height: 14mm; }
+  .lw .name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22pt;
+    color: #2a2620;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+  }
+  .sponsors .tri { height: 14mm; }
+</style>
+</head>
+<body>
+<div class="cert">
+  <div class="inner">
+    <img class="icra" src="../static/images/icra26.png" alt="ICRA 2026">
+    <div class="workshop-line">IEEE ICRA 2026 Workshop &middot; 5th June 2026 &middot; Vienna</div>
+    <div class="workshop-name">Beyond Teleoperation: Learning from Diverse Human and Simulation Data</div>
+    <div class="award-title">Best Paper Award</div>
+    <div class="presented">is presented to</div>
+    <div class="recipient-line"><span class="placeholder">[Recipient Names]</span></div>
+    <div class="reason">in recognition of their paper</div>
+    <div class="paper-line"><span class="placeholder">[Paper Title]</span></div>
+    <div class="closing">
+      presented at the Beyond Teleoperation workshop of the 2026 IEEE International Conference on Robotics and Automation in Vienna, Austria.
+    </div>
+  </div>
+  <div class="sponsors">
+    <span class="label">Sponsored by</span>
+    <span class="lw">
+      <img src="../static/images/lightwheel-mark.png" alt="Lightwheel">
+      <span class="name">Lightwheel</span>
+    </span>
+    <img class="tri" src="../static/images/tri-logo-light.svg" alt="Toyota Research Institute">
+  </div>
+</div>
+</body>
+</html>
