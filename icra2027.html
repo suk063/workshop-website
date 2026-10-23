@@ -530,9 +530,10 @@
 
 <script>
   // Hero: beside the text, an isometric floor where a small wheeled robot with one arm
-  // and a two-finger gripper tidies up. It carries each scattered block to the marked
-  // pad and stacks them. Once all three
-  // are stacked it does a little hop, the blocks scatter again, and it starts over.
+  // and a two-finger gripper tidies up. The robot, the blocks and the pad start in random
+  // places. The robot stacks the blocks on the pad in a fixed order (pink, blue, yellow),
+  // planning each drive on the grid so it goes around anything in the way. Once all three
+  // are stacked it does a little hop, everything is laid out again, and it starts over.
   // Cells near the robot light up and fade, like a short-lived map. Hidden when there
   // is no room beside the text (narrow screens).
   (function () {
@@ -543,10 +544,9 @@
     if (!ctx) return;
 
     const N = 6, M = 4;                       // floor size in cells (x by y)
-    const GOAL = { x: N - 1, y: 0 };          // the pad where blocks get stacked
     const SPEED = 2, GLOW = 1.6, FADE = 2400;
     const BLOCK = 0.15;                       // half a block's size
-    const COLORS = ['#e62087', '#01479d', '#f2ea59'];   // pink, blue and yellow from the ICRA 2027 logo
+    const COLORS = ['#e62087', '#01479d', '#f2ea59'];   // pink, blue and yellow from the ICRA 2027 logo, in stacking order
     // Robot geometry in cells: u is forward along the heading, v to the side, z up
     const BASE = { hw: 0.36, hd: 0.3, z: 0.06, h: 0.16 }, WHEEL = 0.12;
     const BODY = { u: -0.1, hw: 0.19, hd: 0.22, z: 0.22, h: 0.34 };
@@ -562,7 +562,7 @@
     const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
     let width = 0, height = 0, ox = 0, oy = 0, s = 0, a = 0, b = 0, active = false;
-    let robot, blocks = [], path = [], lit = new Map(), run = 0, visible = true;
+    let robot, goal, blocks = [], path = [], lit = new Map(), padAlpha = 1, run = 0, visible = true;
 
     // Isometric projection: world x runs down-right, y down-left, z up (all in cells)
     const P = (x, y, z = 0) => [ox + (x - y) * a, oy + (x + y) * b - z * s];
@@ -629,43 +629,90 @@
 
     const cell = (x, y) => Math.floor(y) * N + Math.floor(x);
 
-    // Put the blocks on random free cells, away from the pad and the robot. The cell just
-    // left of each block (where the robot parks to pick it up) is kept free as well.
-    function scatter() {
-      const taken = new Set([cell(GOAL.x, GOAL.y), cell(GOAL.x - 1, GOAL.y), cell(robot.x, robot.y)]);
-      blocks = COLORS.map(color => {
-        let x, y;
-        do { x = rand(1, N - 1); y = rand(0, M - 1); } while (taken.has(cell(x, y)) || taken.has(cell(x - 1, y)));
-        taken.add(cell(x, y));
-        taken.add(cell(x - 1, y));
-        return { x: x + 0.5, y: y + 0.5, z: 0, color, alpha: 1, done: false };
-      });
+    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    // Cells the robot cannot drive through: the pad and every block except the one it carries
+    function obstacles(carried) {
+      const set = new Set([cell(goal.x, goal.y)]);
+      blocks.forEach(bl => { if (bl !== carried) set.add(cell(bl.x, bl.y)); });
+      return set;
     }
 
-    // Shortest 4-connected route between cells that avoids the pad and every block on the floor
-    // (except the one being carried). Returns cell centers, with straight runs merged.
-    function route(from, to) {
-      const blocked = new Set([cell(GOAL.x, GOAL.y)]);
-      blocks.forEach(bl => { if (bl !== robot.holding) blocked.add(cell(bl.x, bl.y)); });
-      const start = cell(from.x, from.y), goal = cell(to.x, to.y), prev = new Map([[start, -1]]), queue = [start];
+    // Breadth-first search over grid cells (4-connected) around the obstacles.
+    // Returns the cell centers along the shortest route, or null if there is none.
+    function route(from, to, blocked) {
+      const start = cell(from.x, from.y), end = cell(to.x, to.y), prev = new Map([[start, -1]]), queue = [start];
       while (queue.length) {
         const k = queue.shift();
-        if (k === goal) break;
+        if (k === end) break;
         const x = k % N, y = Math.floor(k / N);
-        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+        DIRS.forEach(([dx, dy]) => {
           const nx = x + dx, ny = y + dy, nk = ny * N + nx;
           if (nx < 0 || ny < 0 || nx >= N || ny >= M || blocked.has(nk) || prev.has(nk)) return;
           prev.set(nk, k);
           queue.push(nk);
         });
       }
-      if (!prev.has(goal)) return null;
+      if (!prev.has(end)) return null;
       const cells = [];
-      for (let k = goal; k !== -1; k = prev.get(k)) cells.unshift({ x: k % N + 0.5, y: Math.floor(k / N) + 0.5 });
-      return cells.filter((c, i) => {
-        const p = cells[i - 1], q = cells[i + 1];
-        return !p || !q || (p.x - c.x) * (q.y - c.y) !== (p.y - c.y) * (q.x - c.x);
+      for (let k = end; k !== -1; k = prev.get(k)) cells.unshift({ x: k % N + 0.5, y: Math.floor(k / N) + 0.5 });
+      return cells;
+    }
+
+    // Plan how to reach a target cell: try parking on each free side of it, keep the shortest
+    // route, and face the target from there. Straight runs of the route are merged into one leg.
+    function plan(from, target, blocked) {
+      let best = null;
+      DIRS.forEach(([dx, dy]) => {
+        const side = { x: Math.floor(target.x) - dx + 0.5, y: Math.floor(target.y) - dy + 0.5 };
+        if (side.x < 0 || side.y < 0 || side.x > N || side.y > M || blocked.has(cell(side.x, side.y))) return;
+        const cells = route(from, side, blocked);
+        if (cells && (!best || cells.length < best.cells.length)) {
+          best = { cells, th: Math.atan2(dy, dx), stop: { x: target.x - dx * STOP, y: target.y - dy * STOP } };
+        }
       });
+      if (best) {
+        const c = best.cells;
+        best.cells = c.filter((p, i) => !c[i - 1] || !c[i + 1] ||
+          (c[i - 1].x - p.x) * (c[i + 1].y - p.y) !== (c[i - 1].y - p.y) * (c[i + 1].x - p.x));
+      }
+      return best;
+    }
+
+    // Check that the whole task can be done in order from where the robot stands
+    function feasible() {
+      let at = { x: robot.x, y: robot.y };
+      for (let k = 0; k < blocks.length; k++) {
+        const rest = blocks.slice(k);
+        const blocked = new Set([cell(goal.x, goal.y), ...rest.map(bl => cell(bl.x, bl.y))]);
+        const pick = plan(at, blocks[k], blocked);
+        if (!pick) return false;
+        blocked.delete(cell(blocks[k].x, blocks[k].y));
+        const place = plan(pick.stop, { x: goal.x + 0.5, y: goal.y + 0.5 }, blocked);
+        if (!place) return false;
+        at = place.stop;
+      }
+      return true;
+    }
+
+    // Random pad and blocks (and, at the start, a random robot pose) that the task can be done from
+    function layout(placeRobot) {
+      for (let tries = 0; tries < 200; tries++) {
+        const cells = Array.from({ length: N * M }, (_, k) => k).sort(() => Math.random() - 0.5);
+        if (placeRobot) {
+          const k = cells.pop();
+          Object.assign(robot, { x: k % N + 0.5, y: Math.floor(k / N) + 0.5, th: rand(0, 3) * Math.PI / 2 - Math.PI });
+        } else {
+          cells.splice(cells.indexOf(cell(robot.x, robot.y)), 1);
+        }
+        const g = cells.pop();
+        goal = { x: g % N, y: Math.floor(g / N) };
+        blocks = COLORS.map(color => {
+          const k = cells.pop();
+          return { x: k % N + 0.5, y: Math.floor(k / N) + 0.5, z: 0, color, alpha: 1, done: false };
+        });
+        if (feasible()) return;
+      }
     }
 
     function build() {
@@ -686,8 +733,9 @@
       if (!active) return;
       ox = left + (avail - (N + M) * a) / 2 + M * a;
       oy = (height - ((N + M) * b + 0.3 * s)) / 2 + 0.75 * s;
-      robot = { x: 0.6, y: 2.5, th: 0, tu: REST.u, tz: REST.z, grip: 1, holding: null, stacked: 0, happy: 0, hop: 0 };
-      scatter();
+      robot = { x: 0.5, y: 0.5, th: 0, tu: REST.u, tz: REST.z, grip: 1, holding: null, stacked: 0, happy: 0, hop: 0 };
+      padAlpha = 1;
+      layout(true);
     }
 
     function tween(ms, fn, id) {
@@ -717,12 +765,12 @@
       return tween(ms, t => { robot.tu = lerp(u0, u, t); robot.tz = lerp(z0, z, t); }, id);
     }
 
-    // Drive around the blocks to the cell just left of (x, y), then up to it so the
-    // point ends up right in front of the robot
-    async function visit(x, y, id) {
-      const stop = { x: x - STOP, y };
-      const cells = route(robot, { x: x - 1, y });
-      path = cells ? [...cells, stop] : [{ x: robot.x, y: stop.y }, stop];
+    // Drive the planned route to a free side of the target cell, then up to it so the
+    // target ends up right in front of the robot
+    async function visit(target, id) {
+      const best = plan(robot, target, obstacles(robot.holding));
+      const th = best ? best.th : 0, stop = best ? best.stop : { x: target.x - STOP, y: target.y };
+      path = best ? [...best.cells, stop] : [{ x: robot.x, y: stop.y }, stop];
       while (path.length) {
         const p = { x: robot.x, y: robot.y }, q = path[0];
         const d = Math.hypot(q.x - p.x, q.y - p.y);
@@ -732,17 +780,16 @@
         }
         path.shift();
       }
-      return turn(0, id);
+      return turn(th, id);
     }
 
     async function play(id) {
-      const pad = { x: GOAL.x + 0.5, y: GOAL.y + 0.5 };
       while (id === run) {
+        const pad = { x: goal.x + 0.5, y: goal.y + 0.5 };
         for (let k = 0; k < blocks.length; k++) {
-          // Fetch the nearest block that is not on the stack yet
-          const block = blocks.filter(bl => !bl.done)
-            .sort((p, q) => Math.hypot(p.x - robot.x, p.y - robot.y) - Math.hypot(q.x - robot.x, q.y - robot.y))[0];
-          if (!await visit(block.x, block.y, id)) return;
+          // Blocks go on the stack in a fixed order
+          const block = blocks[k];
+          if (!await visit(block, id)) return;
           if (!await hands(STOP, WRIST + HOVER, 380, id)) return;
           if (!await hands(STOP, WRIST, 260, id)) return;
           if (!await tween(220, t => { robot.grip = 1 - t; }, id)) return;
@@ -750,7 +797,7 @@
           if (!await hands(CARRY.u, CARRY.z, 420, id)) return;
           // Put it on top of the stack
           const z = k * 2 * BLOCK;
-          if (!await visit(pad.x, pad.y, id)) return;
+          if (!await visit(pad, id)) return;
           if (!await hands(STOP, z + WRIST + HOVER, 420, id)) return;
           if (!await hands(STOP, z + WRIST, 280, id)) return;
           if (!await tween(220, t => { robot.grip = t; }, id)) return;
@@ -760,15 +807,15 @@
           if (!await hands(STOP, z + WRIST + HOVER, 220, id)) return;
           if (!await hands(REST.u, REST.z, 380, id)) return;
         }
-        // All stacked: a happy little hop, then the blocks scatter and it starts over
+        // All stacked: a happy little hop, then a new random pad and blocks, and it starts over
         robot.happy = performance.now() + 2000;
         if (!await tween(900, t => { robot.hop = Math.abs(Math.sin(t * Math.PI * 2)) * 0.08; }, id)) return;
         if (!await tween(900, () => {}, id)) return;
-        if (!await tween(400, t => { blocks.forEach(bl => { bl.alpha = 1 - t; }); }, id)) return;
-        scatter();
+        if (!await tween(400, t => { padAlpha = 1 - t; blocks.forEach(bl => { bl.alpha = 1 - t; }); }, id)) return;
+        layout(false);
         blocks.forEach(bl => { bl.alpha = 0; });
         robot.stacked = 0;
-        if (!await tween(400, t => { blocks.forEach(bl => { bl.alpha = t; }); }, id)) return;
+        if (!await tween(400, t => { padAlpha = t; blocks.forEach(bl => { bl.alpha = t; }); }, id)) return;
       }
     }
 
@@ -801,13 +848,16 @@
       ctx.stroke();
       poly([P(0, 0), P(N, 0), P(N, M), P(0, M)], null, 'rgba(255, 255, 255, 0.2)');
 
-      // The pad: a dashed square where the blocks are stacked
-      const i = 0.12, g = GOAL;
+      // The pad: a dashed square where the blocks are stacked, outlined in the color of the
+      // block that goes on next
+      const i = 0.12, g = goal, next = blocks[robot.stacked];
+      ctx.globalAlpha = padAlpha;
       ctx.lineWidth = 1.5;
       ctx.setLineDash([3, 4]);
       poly([P(g.x + i, g.y + i), P(g.x + 1 - i, g.y + i), P(g.x + 1 - i, g.y + 1 - i), P(g.x + i, g.y + 1 - i)],
-           'rgba(246, 169, 1, 0.14)', 'rgba(246, 169, 1, 0.85)');
+           'rgba(246, 169, 1, 0.14)', next ? next.color : '#f6a901');
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     }
 
     function drawBlock(bl) {
@@ -852,9 +902,9 @@
       const body = () => {
         box(...at(BODY.u), BODY.z + robot.hop, BODY.h, BODY.hw, BODY.hd, robot.th, '#eef0ef', 'rgba(255, 255, 255, 0.8)');
         if (facing) {
-          // Three status lights that turn on as blocks get stacked
+          // Three status lights, one per block in stacking order, that light up in its color once stacked
           const uf = BODY.u + BODY.hw + 0.004;
-          [-0.08, 0, 0.08].forEach((v, i) => faceCircle(uf, v, BODY.z + 0.14, 0.025, 0.025, i < robot.stacked ? '#5fe3e8' : '#a7b0ab'));
+          [-0.08, 0, 0.08].forEach((v, i) => faceCircle(uf, v, BODY.z + 0.14, 0.025, 0.025, i < robot.stacked ? COLORS[i] : '#a7b0ab'));
         }
       };
 
