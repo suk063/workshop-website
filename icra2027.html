@@ -6,32 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Beyond Tabletop: ICRA 2027 Workshop</title>
   <meta name="description" content="Beyond Tabletop: Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation. A full-day workshop at ICRA 2027 in Seoul.">
-  <meta name="theme-color" content="#17113d">
+  <meta name="theme-color" content="#00351c">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Beyond Tabletop: Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation">
   <meta property="og:description" content="A full-day workshop at ICRA 2027 in Seoul.">
   <meta name="twitter:card" content="summary">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='20' height='20' rx='5' fill='%2317113d'/%3E%3Ccircle cx='12' cy='16' r='3.2' fill='%23fca636'/%3E%3Cpath d='M22 16h6M28 12v8M28 12h3M28 20h3' fill='none' stroke='%2317113d' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='20' height='20' rx='5' fill='%2300351c'/%3E%3Ccircle cx='12' cy='16' r='3.2' fill='%23f6a901'/%3E%3Cpath d='M22 16h6M28 12v8M28 12h3M28 20h3' fill='none' stroke='%2300351c' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
   <style>
+    /* Palette from the ICRA 2027 Seoul logo: Seoul green, ICRA purple and ICRA orange */
     :root {
-      --night: #17113d;
+      --night: #00351c;
       --night-line: rgba(255, 255, 255, 0.16);
-      --ink: #1d1838;
-      --slate: #5e5a78;
-      --rule: #e4e1ee;
-      --mist: #f4f2f9;
-      --violet: #6a00a8;
-      --violet-deep: #4f007e;
-      --violet-soft: #efe6f7;
-      --amber: #fca636;
-      --amber-light: #fdbb5f;
-      --tag-bg: #fff0e3;
-      --tag-ink: #9a3412;
+      --ink: #1c1b20;
+      --slate: #5c5e66;
+      --rule: #e5e4e8;
+      --mist: #f4f2f6;
+      --violet: #6f1284;
+      --violet-deep: #540d64;
+      --violet-soft: #f3e7f5;
+      --amber: #f6a901;
+      --amber-light: #ffc23a;
+      --tag-bg: #fff4dc;
+      --tag-ink: #8a4b00;
       --on-night: #ffffff;
-      --on-night-muted: #c9c3e6;
+      --on-night-muted: #b9d6c5;
       --header-h: 4rem;
       --gutter: 1rem;
       color-scheme: light;
@@ -130,6 +131,10 @@
     @media (min-width: 40rem) { .hero-title { font-stretch: 100%; } }
     @media (min-width: 64rem) { .hero-title { font-stretch: 112%; } }
     .hero-sub { max-width: 44ch; margin: 0.75rem 0 0; font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem); font-weight: 400; line-height: 1.3; }
+    .hero-info { display: flex; flex-wrap: wrap; gap: 0.25rem 1.75rem; margin: 1rem 0 0; font-size: 1rem; }
+    .hero-info div { display: flex; gap: 0.35rem; }
+    .hero-info dt { color: var(--amber); }
+    .hero-info dd { margin: 0; color: var(--on-night); }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
 
     /* Sections */
@@ -145,8 +150,8 @@
     .people-speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); --avatar: 8.5rem; }
     @media (min-width: 40rem) { .people-speakers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (min-width: 64rem) { .people-speakers { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-    .people-organizers { display: flex; flex-wrap: wrap; justify-content: center; --avatar: 6.5rem; }
-    .people-organizers > li { width: calc(50% - 0.75rem); }
+    .people-organizers { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5rem 2.75rem; --avatar: 6.5rem; }
+    .people-organizers > li { width: calc(50% - 1.375rem); }
     @media (min-width: 30rem) { .people-organizers > li { width: 8.5rem; } }
     .person { display: flex; flex-direction: column; align-items: center; color: var(--ink); text-align: center; text-decoration: none; }
     .person:hover { color: var(--ink); }
@@ -194,12 +199,6 @@
 
     /* Call for papers */
     .placeholder { max-width: 44rem; margin: 1.5rem 0 0; padding: 1rem 1.25rem; border: 1.5px dashed var(--rule); border-radius: 10px; color: var(--slate); }
-
-    /* Contact */
-    .contacts { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin: 0; padding: 0; list-style: none; }
-    .contacts li { display: flex; align-items: center; gap: 0.85rem; }
-    .contacts .slot-photo { width: 3rem; height: 3rem; }
-    .contacts strong { display: block; font-weight: 600; line-height: 1.3; }
   </style>
 </head>
 
@@ -217,7 +216,6 @@
       <a class="nav-link" href="#schedule">Schedule</a>
       <a class="nav-link" href="#cfp">Call for papers</a>
       <a class="nav-link" href="#organizers">Organizers</a>
-      <a class="nav-link" href="#contact">Contact</a>
     </nav>
     <button class="menu-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu</button>
   </div>
@@ -227,7 +225,6 @@
     <a href="#schedule">Schedule</a>
     <a href="#cfp">Call for papers</a>
     <a href="#organizers">Organizers</a>
-    <a href="#contact">Contact</a>
   </nav>
 </header>
 
@@ -235,9 +232,14 @@
   <canvas class="hero-anim" aria-hidden="true"></canvas>
   <div class="wrap hero-inner">
     <div class="hero-copy">
-      <p class="hero-eyebrow">ICRA 2027 Workshop</p>
+      <p class="hero-eyebrow">ICRA 2027 Workshop | Seoul, South Korea | Date TBD</p>
       <h1 class="hero-title"><span>Beyond</span> <span>Tabletop</span></h1>
       <p class="hero-sub">Unifying Spatial Intelligence and Physical Interaction for Mobile Manipulation</p>
+      <dl class="hero-info">
+        <div><dt>Email:</dt><dd>TBD</dd></div>
+        <div><dt>Room:</dt><dd>TBD</dd></div>
+        <div><dt>Livestream:</dt><dd>TBD</dd></div>
+      </dl>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#cfp">Call for papers</a>
         <a class="btn btn-outline" href="#schedule">See the schedule</a>
@@ -475,20 +477,6 @@
     </ul>
   </section>
 
-  <section class="section" id="contact">
-    <h2 class="section-title">Contact</h2>
-    <ul class="contacts">
-      <li>
-        <img class="slot-photo" src="./static/images/people/seungchan.jpg" alt="" loading="lazy" data-initials="SK">
-        <span><strong>Seungchan Kim</strong><a href="mailto:seungch2@andrew.cmu.edu">seungch2@andrew.cmu.edu</a></span>
-      </li>
-      <li>
-        <img class="slot-photo" src="./static/images/people/jingyun.jpg" alt="" loading="lazy" data-initials="JY">
-        <span><strong>Jingyun Yang</strong><a href="mailto:jingyuny@stanford.edu">jingyuny@stanford.edu</a></span>
-      </li>
-    </ul>
-  </section>
-
 </main>
 
 <script>
@@ -676,8 +664,8 @@
       ctx.closePath();
     }
     function drawObject(x, y) {
-      ctx.fillStyle = '#fcce25';
-      ctx.strokeStyle = '#17113d';
+      ctx.fillStyle = '#f2ea59';
+      ctx.strokeStyle = '#00351c';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(x, y, 0.2 * CELL, 0, Math.PI * 2);
@@ -707,7 +695,7 @@
 
       // Remaining route
       if (path.length) {
-        ctx.strokeStyle = 'rgba(252, 166, 54, 0.7)';
+        ctx.strokeStyle = 'rgba(246, 169, 1, 0.75)';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.setLineDash([2, 6]);
@@ -735,12 +723,12 @@
       ctx.moveTo(tip, -g); ctx.lineTo(tip + 0.26 * CELL, -g);
       ctx.moveTo(tip, g); ctx.lineTo(tip + 0.26 * CELL, g);
       ctx.stroke();
-      ctx.fillStyle = '#17113d';
+      ctx.fillStyle = '#00351c';
       ctx.lineWidth = 2;
       roundRect(-half, -half, 2 * half, 2 * half, 0.22 * CELL);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#fca636';
+      ctx.fillStyle = '#f6a901';
       ctx.beginPath();
       ctx.arc(0, 0, 0.16 * CELL, 0, Math.PI * 2);
       ctx.fill();
