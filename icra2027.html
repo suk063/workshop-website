@@ -111,7 +111,7 @@
     .btn-outline { background: var(--night); color: var(--on-night); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45); }
     .btn-outline:hover { color: var(--on-night); box-shadow: inset 0 0 0 1px var(--on-night); }
 
-    /* Hero: the background grid doubles as an occupancy map that the robot fills in */
+    /* Hero */
     .hero {
       position: relative; overflow: hidden;
       background-color: var(--night);
@@ -121,24 +121,17 @@
       background-size: 28px 28px;
       color: var(--on-night);
     }
-    .hero-map { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .hero-inner { position: relative; display: grid; gap: 2rem; padding-block: clamp(3rem, 7vw, 5.5rem) clamp(2.5rem, 5vw, 4.5rem); }
-    .hero-stage { height: 15rem; }
-    @media (min-width: 64rem) {
-      .hero-inner { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 3rem; }
-      .hero-stage { align-self: stretch; height: auto; min-height: 26rem; }
-    }
+    .hero-inner { position: relative; padding-block: clamp(2.25rem, 5vw, 3.5rem); }
     .hero-title {
       margin: 0;
-      font-size: clamp(2.75rem, 0.75rem + 6vw, 5.5rem);
+      font-size: clamp(2.5rem, 1rem + 4vw, 4rem);
       font-weight: 700; font-stretch: 85%;
       line-height: 0.95; letter-spacing: -0.02em;
     }
-    .hero-title span { display: block; }
     @media (min-width: 40rem) { .hero-title { font-stretch: 100%; } }
     @media (min-width: 64rem) { .hero-title { font-stretch: 112%; } }
-    .hero-sub { max-width: 30ch; margin: 1.25rem 0 0; font-size: clamp(1.2rem, 1rem + 0.8vw, 1.6rem); font-weight: 400; line-height: 1.3; }
-    .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+    .hero-sub { max-width: 44ch; margin: 0.75rem 0 0; font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem); font-weight: 400; line-height: 1.3; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
 
     /* Sections */
     .section { padding-block: 4rem; }
@@ -261,7 +254,6 @@
 </header>
 
 <section class="hero" id="top">
-  <canvas class="hero-map" aria-hidden="true"></canvas>
   <div class="wrap hero-inner">
     <div class="hero-copy">
       <h1 class="hero-title"><span>Beyond</span> <span>Tabletop</span></h1>
@@ -271,7 +263,6 @@
         <a class="btn btn-outline" href="#schedule">See the schedule</a>
       </div>
     </div>
-    <div class="hero-stage" aria-hidden="true"></div>
   </div>
 </section>
 
@@ -599,343 +590,6 @@
     if (img.complete && img.naturalWidth === 0) swap();
     else img.addEventListener('error', swap);
   });
-</script>
-
-<script>
-  // Hero: a top-down mobile manipulator builds an occupancy map with its lidar,
-  // plans a path out of the room with the table, and picks an object off a shelf.
-  // The map cells line up with the hero's background grid.
-  (function () {
-    const hero = document.querySelector('.hero');
-    const canvas = hero.querySelector('.hero-map');
-    const stage = hero.querySelector('.hero-stage');
-    const ctx = canvas.getContext && canvas.getContext('2d');
-    if (!ctx) return;
-
-    const CELL = 28, RANGE = 9, RAYS = 180, SPEED = 3.2;
-    const FILL = { wall: 'rgba(201, 195, 230, 0.5)', table: '#e16462', shelf: '#b12a90', object: '#b12a90', sofa: '#8f0da4' };
-    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-
-    let width = 0, height = 0, ox = 0, oy = 0, W = 0, H = 0;
-    let grid, seen, obj, way, robot, rays = [], seg = 0, planned = 0, showRays = true;
-    let run = 0, instant = reduceMotion;
-
-    function tween(ms, fn, id) {
-      return new Promise(resolve => {
-        // Without animation, still step through so the lidar sees along the whole path
-        if (instant) { [0.25, 0.5, 0.75, 1].forEach(fn); resolve(); return; }
-        const start = performance.now();
-        requestAnimationFrame(function step(now) {
-          if (id !== run) { resolve(); return; }
-          const t = Math.min((now - start) / ms, 1);
-          fn(easeInOut(t));
-          if (t < 1) requestAnimationFrame(step); else resolve();
-        });
-      });
-    }
-
-    const blocked = (x, y) => x < 0 || y < 0 || x >= W || y >= H || grid[y][x] !== null;
-
-    function planFloor() {
-      grid = Array.from({ length: H }, () => Array(W).fill(null));
-      seen = Array.from({ length: H }, () => Array(W).fill(0));
-      const set = (x, y, kind) => { if (x >= 0 && y >= 0 && x < W && y < H) grid[y][x] = kind; };
-      for (let x = 0; x < W; x++) { set(x, 0, 'wall'); set(x, H - 1, 'wall'); }
-      for (let y = 0; y < H; y++) { set(0, y, 'wall'); set(W - 1, y, 'wall'); }
-      // Two rooms joined by a three-cell doorway
-      const divider = Math.floor(W / 2), door = Math.floor(H / 2) - 1;
-      for (let y = 1; y < H - 1; y++) if (y < door || y > door + 2) set(divider, y, 'wall');
-      // First room: a table. Second room: a shelf with the target object, and a sofa if there is space
-      for (let x = 2; x <= Math.max(2, divider - 3); x++) for (let y = H - 4; y <= H - 3; y++) set(x, y, 'table');
-      const shelfEnd = Math.max(3, Math.floor(H * 0.45));
-      for (let y = 1; y <= shelfEnd; y++) set(W - 2, y, 'shelf');
-      obj = { x: W - 2, y: Math.round((1 + shelfEnd) / 2) };
-      set(obj.x, obj.y, 'object');
-      if (H >= 10) for (let x = divider + 2; x <= W - 4; x++) for (let y = H - 3; y <= H - 2; y++) set(x, y, 'sofa');
-    }
-
-    // A* on the grid, with a small penalty for hugging obstacles
-    function astar(s, g) {
-      const key = (x, y) => y * W + x;
-      const nearObstacle = (x, y) => DIRS.some(([dx, dy]) => blocked(x + dx, y + dy));
-      const open = [{ x: s.x, y: s.y, f: 0 }], cost = new Map([[key(s.x, s.y), 0]]), from = new Map();
-      while (open.length) {
-        open.sort((a, b) => a.f - b.f);
-        const cur = open.shift();
-        if (cur.x === g.x && cur.y === g.y) {
-          const out = [{ x: g.x, y: g.y }];
-          let k = key(g.x, g.y);
-          while (from.has(k)) { k = from.get(k); out.unshift({ x: k % W, y: Math.floor(k / W) }); }
-          return out;
-        }
-        for (const [dx, dy] of DIRS) {
-          const nx = cur.x + dx, ny = cur.y + dy;
-          if (blocked(nx, ny) || (dx && dy && (blocked(cur.x + dx, cur.y) || blocked(cur.x, cur.y + dy)))) continue;
-          const c = cost.get(key(cur.x, cur.y)) + (dx && dy ? Math.SQRT2 : 1) + (nearObstacle(nx, ny) ? 1.5 : 0);
-          if (c < (cost.get(key(nx, ny)) ?? Infinity)) {
-            cost.set(key(nx, ny), c);
-            from.set(key(nx, ny), key(cur.x, cur.y));
-            open.push({ x: nx, y: ny, f: c + Math.hypot(g.x - nx, g.y - ny) });
-          }
-        }
-      }
-      return [s, g];
-    }
-
-    // Shortcut the grid path wherever a straight line keeps clear of obstacles
-    function clearLine(a, b) {
-      const n = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.1);
-      for (let i = 0; i <= n; i++) {
-        const px = lerp(a.x, b.x, i / n), py = lerp(a.y, b.y, i / n);
-        for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) {
-          const x = Math.floor(px) + k, y = Math.floor(py) + j;
-          if (!blocked(x, y)) continue;
-          const dx = Math.max(x - px, 0, px - x - 1), dy = Math.max(y - py, 0, py - y - 1);
-          if (Math.hypot(dx, dy) < 0.6) return false;
-        }
-      }
-      return true;
-    }
-    function shortcut(pts) {
-      const out = [pts[0]];
-      for (let i = 0; i < pts.length - 1;) {
-        let j = pts.length - 1;
-        while (j > i + 1 && !clearLine(pts[i], pts[j])) j--;
-        out.push(pts[j]);
-        i = j;
-      }
-      return out;
-    }
-
-    function build() {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const box = hero.getBoundingClientRect();
-      width = box.width; height = box.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      const s = stage.getBoundingClientRect();
-      const left = s.left - box.left, top = s.top - box.top;
-      ox = Math.ceil(left / CELL) * CELL;
-      oy = Math.ceil(top / CELL) * CELL;
-      W = clamp(Math.floor((left + s.width - ox) / CELL), 11, 22);
-      H = clamp(Math.floor((top + s.height - oy) / CELL), 8, 15);
-
-      planFloor();
-      const start = { x: 2, y: 2 }, goal = { x: W - 4, y: obj.y };
-      way = shortcut(astar(start, goal).map(c => ({ x: c.x + 0.5, y: c.y + 0.5 })));
-      robot = { x: start.x + 0.5, y: start.y + 0.5, th: 0, arm: 0, grip: 1, holding: false };
-      rays = []; seg = 0; planned = 0; showRays = true;
-    }
-
-    // Lidar: cast rays from the robot, marking free cells and the first occupied cell on each ray
-    function sense(range) {
-      const now = performance.now();
-      rays = [];
-      for (let k = 0; k < RAYS; k++) {
-        const a = (k / RAYS) * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a);
-        let d = 0;
-        while (d < range) {
-          d += 0.2;
-          const x = Math.floor(robot.x + dx * d), y = Math.floor(robot.y + dy * d);
-          if (x < 0 || y < 0 || x >= W || y >= H) break;
-          if (!seen[y][x]) seen[y][x] = now;
-          if (grid[y][x]) break;
-        }
-        rays.push(Math.min(d, range));
-      }
-    }
-
-    const px = x => ox + x * CELL;
-    const py = y => oy + y * CELL;
-    function roundRect(x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-    }
-    function polyline(pts, limit = Infinity) {
-      ctx.beginPath();
-      ctx.moveTo(px(pts[0].x), py(pts[0].y));
-      let left = limit;
-      for (let i = 1; i < pts.length && left > 0; i++) {
-        const a = pts[i - 1], b = pts[i], d = Math.hypot(b.x - a.x, b.y - a.y), t = Math.min(1, left / d);
-        ctx.lineTo(px(lerp(a.x, b.x, t)), py(lerp(a.y, b.y, t)));
-        left -= d;
-      }
-      ctx.stroke();
-    }
-    function drawObject(x, y) {
-      ctx.fillStyle = '#fcce25';
-      ctx.strokeStyle = '#17113d';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 0.2 * CELL, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    function draw() {
-      const now = performance.now();
-      ctx.clearRect(0, 0, width, height);
-
-      // Map: revealed cells fade in; free space is a faint tint, obstacles are solid
-      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-        if (!seen[y][x]) continue;
-        ctx.globalAlpha = instant ? 1 : clamp((now - seen[y][x]) / 350, 0, 1);
-        const kind = grid[y][x];
-        if (kind) { ctx.fillStyle = FILL[kind]; roundRect(px(x) + 4, py(y) + 4, CELL - 7, CELL - 7, 4); ctx.fill(); }
-        else { ctx.fillStyle = 'rgba(255, 255, 255, 0.06)'; ctx.fillRect(px(x) + 1, py(y) + 1, CELL - 1, CELL - 1); }
-      }
-      ctx.globalAlpha = 1;
-
-      if (showRays && rays.length) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        rays.forEach((d, k) => {
-          const a = (k / RAYS) * Math.PI * 2;
-          ctx.moveTo(px(robot.x), py(robot.y));
-          ctx.lineTo(px(robot.x + Math.cos(a) * d), py(robot.y + Math.sin(a) * d));
-        });
-        ctx.stroke();
-      }
-
-      // Planned path: travelled part faint, remaining part dashed
-      if (planned > 0) {
-        ctx.lineCap = 'round';
-        ctx.lineWidth = 2;
-        if (seg > 0 || robot.x !== way[0].x || robot.y !== way[0].y) {
-          ctx.strokeStyle = 'rgba(252, 166, 54, 0.3)';
-          ctx.setLineDash([]);
-          polyline([...way.slice(0, seg + 1), robot]);
-        }
-        ctx.strokeStyle = '#fca636';
-        ctx.setLineDash([2, 6]);
-        const ahead = [robot, ...way.slice(seg + 1)];
-        const total = ahead.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - ahead[i].x, p.y - ahead[i].y), 0);
-        polyline(ahead, total * planned);
-        ctx.setLineDash([]);
-      }
-
-      // Target object, with a ring once it has been seen and a path planned to it
-      if (!robot.holding && seen[obj.y][obj.x]) {
-        const cx = px(obj.x + 0.5), cy = py(obj.y + 0.5);
-        if (planned > 0) {
-          ctx.strokeStyle = 'rgba(252, 206, 37, 0.7)';
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([3, 4]);
-          ctx.beginPath();
-          ctx.arc(cx, cy, 0.48 * CELL, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-        drawObject(cx, cy);
-      }
-
-      // Robot: square base, lidar at the center, telescoping arm with a two-finger gripper
-      const half = 0.6 * CELL, tip = half + robot.arm * CELL, g = (0.1 + 0.14 * robot.grip) * CELL;
-      ctx.save();
-      ctx.translate(px(robot.x), py(robot.y));
-      ctx.rotate(robot.th);
-      ctx.strokeStyle = '#fff';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 3;
-      if (robot.arm > 0.02) { ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(tip, 0); ctx.stroke(); }
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(tip, -g); ctx.lineTo(tip, g);
-      ctx.moveTo(tip, -g); ctx.lineTo(tip + 0.26 * CELL, -g);
-      ctx.moveTo(tip, g); ctx.lineTo(tip + 0.26 * CELL, g);
-      ctx.stroke();
-      ctx.fillStyle = '#17113d';
-      ctx.lineWidth = 2;
-      roundRect(-half, -half, 2 * half, 2 * half, 0.22 * CELL);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#fca636';
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.16 * CELL, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      if (robot.holding) {
-        const r = half / CELL + robot.arm + 0.15;
-        drawObject(px(robot.x + Math.cos(robot.th) * r), py(robot.y + Math.sin(robot.th) * r));
-      }
-    }
-
-    function turn(target, id) {
-      const from = robot.th;
-      let d = target - from;
-      while (d > Math.PI) d -= 2 * Math.PI;
-      while (d < -Math.PI) d += 2 * Math.PI;
-      if (Math.abs(d) < 0.01) return Promise.resolve();
-      return tween(150 + Math.abs(d) * 160, t => { robot.th = from + d * t; draw(); }, id);
-    }
-
-    async function play(id) {
-      const live = () => id === run;
-      // 1. Sense from the start pose; the mapped area grows outward
-      await tween(1200, t => { sense(RANGE * t); draw(); }, id);
-      if (!live()) return;
-      // 2. Plan a path to the shelf in the next room
-      await tween(600, t => { planned = t; draw(); }, id);
-      if (!live()) return;
-      // 3. Drive, mapping along the way
-      for (let i = 1; i < way.length; i++) {
-        seg = i - 1;
-        const a = way[i - 1], b = way[i];
-        await turn(Math.atan2(b.y - a.y, b.x - a.x), id);
-        const d = Math.hypot(b.x - a.x, b.y - a.y);
-        await tween((d / SPEED) * 1000, t => { robot.x = lerp(a.x, b.x, t); robot.y = lerp(a.y, b.y, t); sense(RANGE); draw(); }, id);
-        if (!live()) return;
-      }
-      seg = way.length - 1;
-      await turn(0, id);
-      // 4. Reach, grasp, and pull the object back
-      const reach = obj.x + 0.5 - robot.x - 0.6 - 0.15;
-      await tween(700, t => { robot.arm = reach * t; draw(); }, id);
-      await tween(220, t => { robot.grip = 1 - t; draw(); }, id);
-      if (!live()) return;
-      robot.holding = true;
-      grid[obj.y][obj.x] = 'shelf';
-      await tween(700, t => { robot.arm = lerp(reach, 0.2, t); draw(); }, id);
-      showRays = false;
-      await tween(400, () => draw(), id);
-    }
-
-    function start(animate) {
-      run++;
-      instant = reduceMotion || !animate;
-      build();
-      play(run);
-    }
-
-    const fontsReady = document.fonts
-      ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))])
-      : Promise.resolve();
-    fontsReady.then(() => {
-      start(true);
-      if (!('ResizeObserver' in window)) return;
-      let frame = 0;
-      new ResizeObserver(() => {
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => {
-          const box = hero.getBoundingClientRect();
-          if (Math.abs(box.width - width) < 1 && Math.abs(box.height - height) < 1) return;
-          start(false);
-        });
-      }).observe(hero);
-    });
-  })();
 </script>
 
 </body>
