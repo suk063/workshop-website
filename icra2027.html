@@ -118,6 +118,7 @@
       background-size: 28px 28px;
       color: var(--on-night);
     }
+    .hero-anim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     .hero-inner { position: relative; padding-block: clamp(2.25rem, 5vw, 3.5rem); }
     .hero-eyebrow { margin: 0 0 0.5rem; color: var(--amber); font-size: clamp(0.9375rem, 0.85rem + 0.3vw, 1.0625rem); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
     .hero-title {
@@ -231,6 +232,7 @@
 </header>
 
 <section class="hero" id="top">
+  <canvas class="hero-anim" aria-hidden="true"></canvas>
   <div class="wrap hero-inner">
     <div class="hero-copy">
       <p class="hero-eyebrow">ICRA 2027 Workshop</p>
@@ -536,6 +538,254 @@
     if (img.complete && img.naturalWidth === 0) swap();
     else img.addEventListener('error', swap);
   });
+</script>
+
+<script>
+  // Hero: in the empty grid beside the text, a top-down mobile manipulator drives
+  // between grid cells, picking up an object and placing it somewhere else.
+  // Cells near the robot light up and fade, like a short-lived map. Hidden when
+  // there is no room beside the text (narrow screens).
+  (function () {
+    const hero = document.querySelector('.hero');
+    const canvas = hero.querySelector('.hero-anim');
+    const copy = hero.querySelector('.hero-copy');
+    const ctx = canvas.getContext && canvas.getContext('2d');
+    if (!ctx) return;
+
+    const CELL = 28, SPEED = 2.6, GLOW = 2.2, FADE = 2400, STOP = 1.6;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+    const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+    let width = 0, height = 0, x0 = 0, x1 = 0, y0 = 0, y1 = 0, active = false;
+    let robot, obj, path = [], lit = new Map(), run = 0, visible = true;
+
+    // Right edge of the hero text and buttons, relative to the hero
+    function textRight() {
+      const left = hero.getBoundingClientRect().left;
+      const range = document.createRange();
+      const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
+      let right = 0;
+      while (walker.nextNode()) {
+        range.selectNodeContents(walker.currentNode);
+        right = Math.max(right, range.getBoundingClientRect().right);
+      }
+      copy.querySelectorAll('.btn').forEach(b => { right = Math.max(right, b.getBoundingClientRect().right); });
+      return right - left;
+    }
+
+    function build() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const box = hero.getBoundingClientRect();
+      width = box.width; height = box.height;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Usable cells: from two cells past the text to one cell before the edge
+      x0 = Math.ceil(textRight() / CELL) + 2;
+      x1 = Math.floor(width / CELL) - 2;
+      y0 = 1;
+      y1 = Math.floor(height / CELL) - 2;
+      active = x1 - x0 >= 6 && y1 - y0 >= 4;
+      lit = new Map();
+      path = [];
+      if (!active) return;
+      obj = { x: x1 - 1, y: Math.round((y0 + y1) / 2) };
+      robot = { x: x0 + 0.5, y: y0 + 1.5, th: 0, arm: 0, grip: 1, holding: false };
+      if (reduceMotion) {
+        robot.x = obj.x + 0.5 - STOP;
+        robot.y = obj.y + 0.5;
+      }
+    }
+
+    function pickCell(far) {
+      for (let i = 0; i < 40; i++) {
+        const c = { x: rand(x0 + 3, x1), y: rand(y0, y1) };
+        if (Math.hypot(c.x + 0.5 - robot.x, c.y + 0.5 - robot.y) > far) return c;
+      }
+      return { x: x1, y: y0 };
+    }
+
+    function tween(ms, fn, id) {
+      return new Promise(resolve => {
+        const start = performance.now();
+        requestAnimationFrame(function step(now) {
+          if (id !== run) { resolve(false); return; }
+          const t = Math.min((now - start) / ms, 1);
+          fn(ease(t));
+          if (t < 1) requestAnimationFrame(step); else resolve(true);
+        });
+      });
+    }
+
+    async function turn(target, id) {
+      let d = target - robot.th;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      if (Math.abs(d) < 0.01) return true;
+      const from = robot.th;
+      return tween(180 + Math.abs(d) * 180, t => { robot.th = from + d * t; }, id);
+    }
+
+    // Drive an L-shaped route to just left of a cell, then reach into it
+    async function visit(cell, id) {
+      const stop = { x: cell.x + 0.5 - STOP, y: cell.y + 0.5 };
+      path = [{ x: robot.x, y: stop.y }, stop];
+      while (path.length) {
+        const a = { x: robot.x, y: robot.y }, b = path[0];
+        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        if (d > 0.01) {
+          if (!await turn(Math.atan2(b.y - a.y, b.x - a.x), id)) return false;
+          if (!await tween((d / SPEED) * 1000, t => { robot.x = lerp(a.x, b.x, t); robot.y = lerp(a.y, b.y, t); }, id)) return false;
+        }
+        path.shift();
+      }
+      if (!await turn(0, id)) return false;
+      return tween(500, t => { robot.arm = (STOP - 0.75) * t; }, id);
+    }
+
+    async function play(id) {
+      while (id === run) {
+        // Pick up the object
+        if (!await visit(obj, id)) return;
+        if (!await tween(200, t => { robot.grip = 1 - t; }, id)) return;
+        robot.holding = true;
+        obj = null;
+        if (!await tween(450, t => { robot.arm = (STOP - 0.75) * (1 - t); }, id)) return;
+        // Carry it to another cell and put it down
+        const drop = pickCell(4);
+        if (!await visit(drop, id)) return;
+        if (!await tween(200, t => { robot.grip = t; }, id)) return;
+        robot.holding = false;
+        obj = drop;
+        if (!await tween(450, t => { robot.arm = (STOP - 0.75) * (1 - t); }, id)) return;
+        if (!await tween(500, () => {}, id)) return;
+      }
+    }
+
+    const px = x => x * CELL;
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+    function drawObject(x, y) {
+      ctx.fillStyle = '#fcce25';
+      ctx.strokeStyle = '#17113d';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 0.2 * CELL, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function draw(now) {
+      ctx.clearRect(0, 0, width, height);
+      if (!active) return;
+
+      // Light up the cells around the robot, and fade the ones it has left behind
+      const r = Math.ceil(GLOW);
+      for (let y = Math.floor(robot.y) - r; y <= Math.floor(robot.y) + r; y++) {
+        for (let x = Math.floor(robot.x) - r; x <= Math.floor(robot.x) + r; x++) {
+          if (x < x0 - 1 || x > x1 + 1 || y < 0 || y > y1 + 1) continue;
+          if (Math.hypot(x + 0.5 - robot.x, y + 0.5 - robot.y) <= GLOW) lit.set(y * 1000 + x, now);
+        }
+      }
+      lit.forEach((t, k) => {
+        const a = reduceMotion ? 1 : 1 - (now - t) / FADE;
+        if (a <= 0) { lit.delete(k); return; }
+        const x = k % 1000, y = Math.floor(k / 1000);
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.07 * a).toFixed(3) + ')';
+        ctx.fillRect(px(x) + 1, px(y) + 1, CELL - 1, CELL - 1);
+      });
+
+      // Remaining route
+      if (path.length) {
+        ctx.strokeStyle = 'rgba(252, 166, 54, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.setLineDash([2, 6]);
+        ctx.beginPath();
+        ctx.moveTo(px(robot.x), px(robot.y));
+        path.forEach(p => ctx.lineTo(px(p.x), px(p.y)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (obj) drawObject(px(obj.x + 0.5), px(obj.y + 0.5));
+
+      // Robot: square base, lidar at the center, telescoping arm with a two-finger gripper
+      const half = 0.6 * CELL, tip = half + robot.arm * CELL, g = (0.1 + 0.14 * robot.grip) * CELL;
+      ctx.save();
+      ctx.translate(px(robot.x), px(robot.y));
+      ctx.rotate(robot.th);
+      ctx.strokeStyle = '#fff';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 3;
+      if (robot.arm > 0.02) { ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(tip, 0); ctx.stroke(); }
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(tip, -g); ctx.lineTo(tip, g);
+      ctx.moveTo(tip, -g); ctx.lineTo(tip + 0.26 * CELL, -g);
+      ctx.moveTo(tip, g); ctx.lineTo(tip + 0.26 * CELL, g);
+      ctx.stroke();
+      ctx.fillStyle = '#17113d';
+      ctx.lineWidth = 2;
+      roundRect(-half, -half, 2 * half, 2 * half, 0.22 * CELL);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fca636';
+      ctx.beginPath();
+      ctx.arc(0, 0, 0.16 * CELL, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      if (robot.holding) {
+        const d = half / CELL + robot.arm + 0.15;
+        drawObject(px(robot.x + Math.cos(robot.th) * d), px(robot.y + Math.sin(robot.th) * d));
+      }
+    }
+
+    function render(now) {
+      if (visible) draw(now);
+      requestAnimationFrame(render);
+    }
+
+    function start() {
+      run++;
+      build();
+      if (reduceMotion || !active) { draw(performance.now()); return; }
+      play(run);
+    }
+
+    const fontsReady = document.fonts
+      ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 800))])
+      : Promise.resolve();
+    fontsReady.then(() => {
+      start();
+      if (!reduceMotion) {
+        requestAnimationFrame(render);
+        if ('IntersectionObserver' in window) {
+          new IntersectionObserver(entries => { visible = entries[0].isIntersecting; }).observe(hero);
+        }
+      }
+      if (!('ResizeObserver' in window)) return;
+      let frame = 0;
+      new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          const box = hero.getBoundingClientRect();
+          if (Math.abs(box.width - width) < 1 && Math.abs(box.height - height) < 1) return;
+          start();
+        });
+      }).observe(hero);
+    });
+  })();
 </script>
 
 </body>
