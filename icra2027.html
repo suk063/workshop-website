@@ -529,10 +529,12 @@
 </script>
 
 <script>
-  // Hero: in the empty grid beside the text, a top-down mobile manipulator drives
-  // between grid cells, picking up an object and placing it somewhere else.
-  // Cells near the robot light up and fade, like a short-lived map. Hidden when
-  // there is no room beside the text (narrow screens).
+  // Hero: beside the text, an isometric floor where a small wheeled robot with one arm
+  // and a two-finger gripper tidies up. It carries each scattered block to the marked
+  // pad and stacks them. Once all three
+  // are stacked it does a little hop, the blocks scatter again, and it starts over.
+  // Cells near the robot light up and fade, like a short-lived map. Hidden when there
+  // is no room beside the text (narrow screens).
   (function () {
     const hero = document.querySelector('.hero');
     const canvas = hero.querySelector('.hero-anim');
@@ -540,14 +542,76 @@
     const ctx = canvas.getContext && canvas.getContext('2d');
     if (!ctx) return;
 
-    const CELL = 28, SPEED = 2.6, GLOW = 2.2, FADE = 2400, STOP = 1.6;
+    const N = 6, M = 4;                       // floor size in cells (x by y)
+    const GOAL = { x: N - 1, y: 0 };          // the pad where blocks get stacked
+    const SPEED = 2, GLOW = 1.6, FADE = 2400;
+    const BLOCK = 0.15;                       // half a block's size
+    const COLORS = ['#e62087', '#01479d', '#f2ea59'];   // pink, blue and yellow from the ICRA 2027 logo
+    // Robot geometry in cells: u is forward along the heading, v to the side, z up
+    const BASE = { hw: 0.36, hd: 0.3, z: 0.06, h: 0.16 }, WHEEL = 0.12;
+    const BODY = { u: -0.1, hw: 0.19, hd: 0.22, z: 0.22, h: 0.34 };
+    const NECK = { u: -0.1, hw: 0.05, hd: 0.06, z: 0.56, h: 0.2 };
+    const HEAD = { u: -0.08, hw: 0.16, hd: 0.22, z: 0.76, h: 0.22 };
+    const SHOULDER = { u: -0.06, v: 0.25, z: 0.46 }, L1 = 0.5, L2 = 0.62;
+    const FINGER = 0.14, WRIST = 2 * BLOCK + 0.02;   // wrist height above a block's bottom when gripping it
+    const STOP = 0.8;                         // distance from the robot's center to a block it handles
+    const REST = { u: 0.5, z: 0.5 }, CARRY = { u: 0.55, z: 0.62 }, HOVER = 0.14;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lerp = (a, b, t) => a + (b - a) * t;
     const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
     const rand = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-    let width = 0, height = 0, x0 = 0, x1 = 0, y0 = 0, y1 = 0, active = false;
-    let robot, obj, path = [], lit = new Map(), run = 0, visible = true;
+    let width = 0, height = 0, ox = 0, oy = 0, s = 0, a = 0, b = 0, active = false;
+    let robot, blocks = [], path = [], lit = new Map(), run = 0, visible = true;
+
+    // Isometric projection: world x runs down-right, y down-left, z up (all in cells)
+    const P = (x, y, z = 0) => [ox + (x - y) * a, oy + (x + y) * b - z * s];
+
+    function shade(hex, f) {
+      const c = [1, 3, 5].map(i => Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * f)));
+      return 'rgb(' + c.join(',') + ')';
+    }
+    function poly(pts, fill, stroke) {
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+    }
+    function line(p, q, w, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = w;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke();
+    }
+    function dot(p, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI * 2); ctx.fill();
+    }
+    function ellipse(x, y, z, r, fill) {
+      const [sx, sy] = P(x, y, z);
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, Math.SQRT2 * r * a, Math.SQRT2 * r * b, 0, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    // A box standing on z0, rotated by th about its center; only faces toward the viewer are drawn
+    function box(cx, cy, z0, h, hw, hd, th, color, edge) {
+      const c = Math.cos(th), sn = Math.sin(th);
+      const local = [[hw, hd], [-hw, hd], [-hw, -hd], [hw, -hd]];
+      const pts = local.map(([u, v]) => [cx + u * c - v * sn, cy + u * sn + v * c]);
+      for (let i = 0; i < 4; i++) {
+        const p = pts[i], q = pts[(i + 1) % 4];
+        const nx = q[1] - p[1], ny = p[0] - q[0];   // outward normal (counter-clockwise corners)
+        const len = Math.hypot(nx, ny);
+        if ((nx + ny) / len <= 0.01) continue;
+        const f = 0.55 + 0.2 * (ny - nx) / len;
+        poly([P(p[0], p[1], z0), P(q[0], q[1], z0), P(q[0], q[1], z0 + h), P(p[0], p[1], z0 + h)], shade(color, f));
+      }
+      ctx.lineWidth = 1.25;
+      poly(pts.map(([x, y]) => P(x, y, z0 + h)), color, edge);
+    }
 
     // Right edge of the hero text and buttons, relative to the hero
     function textRight() {
@@ -559,8 +623,49 @@
         range.selectNodeContents(walker.currentNode);
         right = Math.max(right, range.getBoundingClientRect().right);
       }
-      copy.querySelectorAll('.btn').forEach(b => { right = Math.max(right, b.getBoundingClientRect().right); });
+      copy.querySelectorAll('.btn').forEach(el => { right = Math.max(right, el.getBoundingClientRect().right); });
       return right - left;
+    }
+
+    const cell = (x, y) => Math.floor(y) * N + Math.floor(x);
+
+    // Put the blocks on random free cells, away from the pad and the robot. The cell just
+    // left of each block (where the robot parks to pick it up) is kept free as well.
+    function scatter() {
+      const taken = new Set([cell(GOAL.x, GOAL.y), cell(GOAL.x - 1, GOAL.y), cell(robot.x, robot.y)]);
+      blocks = COLORS.map(color => {
+        let x, y;
+        do { x = rand(1, N - 1); y = rand(0, M - 1); } while (taken.has(cell(x, y)) || taken.has(cell(x - 1, y)));
+        taken.add(cell(x, y));
+        taken.add(cell(x - 1, y));
+        return { x: x + 0.5, y: y + 0.5, z: 0, color, alpha: 1, done: false };
+      });
+    }
+
+    // Shortest 4-connected route between cells that avoids the pad and every block on the floor
+    // (except the one being carried). Returns cell centers, with straight runs merged.
+    function route(from, to) {
+      const blocked = new Set([cell(GOAL.x, GOAL.y)]);
+      blocks.forEach(bl => { if (bl !== robot.holding) blocked.add(cell(bl.x, bl.y)); });
+      const start = cell(from.x, from.y), goal = cell(to.x, to.y), prev = new Map([[start, -1]]), queue = [start];
+      while (queue.length) {
+        const k = queue.shift();
+        if (k === goal) break;
+        const x = k % N, y = Math.floor(k / N);
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
+          const nx = x + dx, ny = y + dy, nk = ny * N + nx;
+          if (nx < 0 || ny < 0 || nx >= N || ny >= M || blocked.has(nk) || prev.has(nk)) return;
+          prev.set(nk, k);
+          queue.push(nk);
+        });
+      }
+      if (!prev.has(goal)) return null;
+      const cells = [];
+      for (let k = goal; k !== -1; k = prev.get(k)) cells.unshift({ x: k % N + 0.5, y: Math.floor(k / N) + 0.5 });
+      return cells.filter((c, i) => {
+        const p = cells[i - 1], q = cells[i + 1];
+        return !p || !q || (p.x - c.x) * (q.y - c.y) !== (p.y - c.y) * (q.x - c.x);
+      });
     }
 
     function build() {
@@ -571,29 +676,18 @@
       canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Usable cells: from two cells past the text to one cell before the edge
-      x0 = Math.ceil(textRight() / CELL) + 2;
-      x1 = Math.floor(width / CELL) - 2;
-      y0 = 1;
-      y1 = Math.floor(height / CELL) - 2;
-      active = x1 - x0 >= 6 && y1 - y0 >= 4;
+      // Fit the floor (plus headroom for the robot and the slab edge) into the space beside the text
+      const left = textRight() + 48, right = width - 24, avail = right - left;
+      s = Math.min(50, (height - 32) / ((N + M) * 0.5 + 1.8), avail / ((N + M) * 0.866));
+      a = s * 0.866; b = s * 0.5;
+      active = avail >= 300 && s >= 18;
       lit = new Map();
       path = [];
       if (!active) return;
-      obj = { x: x1 - 1, y: Math.round((y0 + y1) / 2) };
-      robot = { x: x0 + 0.5, y: y0 + 1.5, th: 0, arm: 0, grip: 1, holding: false };
-      if (reduceMotion) {
-        robot.x = obj.x + 0.5 - STOP;
-        robot.y = obj.y + 0.5;
-      }
-    }
-
-    function pickCell(far) {
-      for (let i = 0; i < 40; i++) {
-        const c = { x: rand(x0 + 3, x1), y: rand(y0, y1) };
-        if (Math.hypot(c.x + 0.5 - robot.x, c.y + 0.5 - robot.y) > far) return c;
-      }
-      return { x: x1, y: y0 };
+      ox = left + (avail - (N + M) * a) / 2 + M * a;
+      oy = (height - ((N + M) * b + 0.3 * s)) / 2 + 0.75 * s;
+      robot = { x: 0.6, y: 2.5, th: 0, tu: REST.u, tz: REST.z, grip: 1, holding: null, stacked: 0, happy: 0, hop: 0 };
+      scatter();
     }
 
     function tween(ms, fn, id) {
@@ -614,129 +708,263 @@
       while (d < -Math.PI) d += 2 * Math.PI;
       if (Math.abs(d) < 0.01) return true;
       const from = robot.th;
-      return tween(180 + Math.abs(d) * 180, t => { robot.th = from + d * t; }, id);
+      return tween(200 + Math.abs(d) * 200, t => { robot.th = from + d * t; }, id);
     }
 
-    // Drive an L-shaped route to just left of a cell, then reach into it
-    async function visit(cell, id) {
-      const stop = { x: cell.x + 0.5 - STOP, y: cell.y + 0.5 };
-      path = [{ x: robot.x, y: stop.y }, stop];
+    // Move the wrist to (u, z) in the robot's frame (it stays on the robot's center line)
+    function hands(u, z, ms, id) {
+      const u0 = robot.tu, z0 = robot.tz;
+      return tween(ms, t => { robot.tu = lerp(u0, u, t); robot.tz = lerp(z0, z, t); }, id);
+    }
+
+    // Drive around the blocks to the cell just left of (x, y), then up to it so the
+    // point ends up right in front of the robot
+    async function visit(x, y, id) {
+      const stop = { x: x - STOP, y };
+      const cells = route(robot, { x: x - 1, y });
+      path = cells ? [...cells, stop] : [{ x: robot.x, y: stop.y }, stop];
       while (path.length) {
-        const a = { x: robot.x, y: robot.y }, b = path[0];
-        const d = Math.hypot(b.x - a.x, b.y - a.y);
+        const p = { x: robot.x, y: robot.y }, q = path[0];
+        const d = Math.hypot(q.x - p.x, q.y - p.y);
         if (d > 0.01) {
-          if (!await turn(Math.atan2(b.y - a.y, b.x - a.x), id)) return false;
-          if (!await tween((d / SPEED) * 1000, t => { robot.x = lerp(a.x, b.x, t); robot.y = lerp(a.y, b.y, t); }, id)) return false;
+          if (!await turn(Math.atan2(q.y - p.y, q.x - p.x), id)) return false;
+          if (!await tween((d / SPEED) * 1000, t => { robot.x = lerp(p.x, q.x, t); robot.y = lerp(p.y, q.y, t); }, id)) return false;
         }
         path.shift();
       }
-      if (!await turn(0, id)) return false;
-      return tween(500, t => { robot.arm = (STOP - 0.75) * t; }, id);
+      return turn(0, id);
     }
 
     async function play(id) {
+      const pad = { x: GOAL.x + 0.5, y: GOAL.y + 0.5 };
       while (id === run) {
-        // Pick up the object
-        if (!await visit(obj, id)) return;
-        if (!await tween(200, t => { robot.grip = 1 - t; }, id)) return;
-        robot.holding = true;
-        obj = null;
-        if (!await tween(450, t => { robot.arm = (STOP - 0.75) * (1 - t); }, id)) return;
-        // Carry it to another cell and put it down
-        const drop = pickCell(4);
-        if (!await visit(drop, id)) return;
-        if (!await tween(200, t => { robot.grip = t; }, id)) return;
-        robot.holding = false;
-        obj = drop;
-        if (!await tween(450, t => { robot.arm = (STOP - 0.75) * (1 - t); }, id)) return;
-        if (!await tween(500, () => {}, id)) return;
+        for (let k = 0; k < blocks.length; k++) {
+          // Fetch the nearest block that is not on the stack yet
+          const block = blocks.filter(bl => !bl.done)
+            .sort((p, q) => Math.hypot(p.x - robot.x, p.y - robot.y) - Math.hypot(q.x - robot.x, q.y - robot.y))[0];
+          if (!await visit(block.x, block.y, id)) return;
+          if (!await hands(STOP, WRIST + HOVER, 380, id)) return;
+          if (!await hands(STOP, WRIST, 260, id)) return;
+          if (!await tween(220, t => { robot.grip = 1 - t; }, id)) return;
+          robot.holding = block;
+          if (!await hands(CARRY.u, CARRY.z, 420, id)) return;
+          // Put it on top of the stack
+          const z = k * 2 * BLOCK;
+          if (!await visit(pad.x, pad.y, id)) return;
+          if (!await hands(STOP, z + WRIST + HOVER, 420, id)) return;
+          if (!await hands(STOP, z + WRIST, 280, id)) return;
+          if (!await tween(220, t => { robot.grip = t; }, id)) return;
+          robot.holding = null;
+          Object.assign(block, { x: pad.x, y: pad.y, z, done: true });
+          robot.stacked = k + 1;
+          if (!await hands(STOP, z + WRIST + HOVER, 220, id)) return;
+          if (!await hands(REST.u, REST.z, 380, id)) return;
+        }
+        // All stacked: a happy little hop, then the blocks scatter and it starts over
+        robot.happy = performance.now() + 2000;
+        if (!await tween(900, t => { robot.hop = Math.abs(Math.sin(t * Math.PI * 2)) * 0.08; }, id)) return;
+        if (!await tween(900, () => {}, id)) return;
+        if (!await tween(400, t => { blocks.forEach(bl => { bl.alpha = 1 - t; }); }, id)) return;
+        scatter();
+        blocks.forEach(bl => { bl.alpha = 0; });
+        robot.stacked = 0;
+        if (!await tween(400, t => { blocks.forEach(bl => { bl.alpha = t; }); }, id)) return;
       }
     }
 
-    const px = x => x * CELL;
-    function roundRect(x, y, w, h, r) {
+    function drawFloor(now) {
+      // Slab: two visible side faces, then the top
+      const t = 0.3;
+      poly([P(0, M), P(N, M), P(N, M, -t), P(0, M, -t)], '#012414');
+      poly([P(N, 0), P(N, M), P(N, M, -t), P(N, 0, -t)], '#011a0e');
+      poly([P(0, 0), P(N, 0), P(N, M), P(0, M)], '#0a4a2b');
+
+      // Cells around the robot light up, the ones it has left behind fade
+      for (let y = Math.floor(robot.y) - 2; y <= Math.floor(robot.y) + 2; y++) {
+        for (let x = Math.floor(robot.x) - 2; x <= Math.floor(robot.x) + 2; x++) {
+          if (x < 0 || y < 0 || x >= N || y >= M) continue;
+          if (Math.hypot(x + 0.5 - robot.x, y + 0.5 - robot.y) <= GLOW) lit.set(y * N + x, now);
+        }
+      }
+      lit.forEach((t0, k) => {
+        const f = reduceMotion ? 1 : 1 - (now - t0) / FADE;
+        if (f <= 0) { lit.delete(k); return; }
+        const x = k % N, y = Math.floor(k / N);
+        poly([P(x, y), P(x + 1, y), P(x + 1, y + 1), P(x, y + 1)], 'rgba(255, 255, 255, ' + (0.08 * f).toFixed(3) + ')');
+      });
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
       ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-    }
-    function drawObject(x, y) {
-      ctx.fillStyle = '#f2ea59';
-      ctx.strokeStyle = '#00351c';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 0.2 * CELL, 0, Math.PI * 2);
-      ctx.fill();
+      for (let x = 1; x < N; x++) { const [p, q] = [P(x, 0), P(x, M)]; ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); }
+      for (let y = 1; y < M; y++) { const [p, q] = [P(0, y), P(N, y)]; ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); }
       ctx.stroke();
+      poly([P(0, 0), P(N, 0), P(N, M), P(0, M)], null, 'rgba(255, 255, 255, 0.2)');
+
+      // The pad: a dashed square where the blocks are stacked
+      const i = 0.12, g = GOAL;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 4]);
+      poly([P(g.x + i, g.y + i), P(g.x + 1 - i, g.y + i), P(g.x + 1 - i, g.y + 1 - i), P(g.x + i, g.y + 1 - i)],
+           'rgba(246, 169, 1, 0.14)', 'rgba(246, 169, 1, 0.85)');
+      ctx.setLineDash([]);
+    }
+
+    function drawBlock(bl) {
+      if (bl.alpha <= 0) return;
+      ctx.globalAlpha = bl.alpha;
+      if (bl.z < 0.01) ellipse(bl.x, bl.y, 0, BLOCK * 1.3, 'rgba(0, 0, 0, 0.3)');
+      box(bl.x, bl.y, bl.z, 2 * BLOCK, BLOCK, BLOCK, 0, bl.color, 'rgba(255, 255, 255, 0.35)');
+      ctx.globalAlpha = 1;
+    }
+
+    // slot: blocks between the gripper fingers, drawn in with the robot so the fingers wrap around them
+    function drawRobot(now, slot) {
+      const c = Math.cos(robot.th), sn = Math.sin(robot.th);
+      const at = (u, v = 0) => [robot.x + u * c - v * sn, robot.y + u * sn + v * c];
+      const Q = (u, v, z) => P(...at(u, v), z + robot.hop);
+      const depth = (u, v) => { const [x, y] = at(u, v); return x + y; };
+      const facing = c + sn > 0.05;               // front faces the viewer
+      const near = depth(0, 1) > depth(0, -1) ? 1 : -1;
+      const armNear = near === 1;                 // the arm is mounted on the +v side
+
+      const loop = (pts, fill) => {
+        ctx.beginPath();
+        pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+      };
+      const ring = (n, f) => Array.from({ length: n }, (_, i) => f((i / n) * Math.PI * 2));
+      // Shapes on a plane facing forward (constant u) or sideways (constant v)
+      const faceCircle = (u, v, z, rv, rz, fill) => loop(ring(20, t => Q(u, v + rv * Math.cos(t), z + rz * Math.sin(t))), fill);
+      const sideCircle = (u, v, z, r, fill) => loop(ring(18, t => Q(u + r * Math.cos(t), v, z + r * Math.sin(t))), fill);
+      const faceRect = (u, v0, v1, z0, z1, fill) => loop([Q(u, v0, z0), Q(u, v1, z0), Q(u, v1, z1), Q(u, v0, z1)], fill);
+
+      const base = () => {
+        box(robot.x, robot.y, BASE.z + robot.hop, BASE.h, BASE.hw, BASE.hd, robot.th, '#2c3a33', 'rgba(255, 255, 255, 0.35)');
+        // Drive wheel on the near side, with a hub
+        const wv = near * (BASE.hd + 0.006);
+        sideCircle(0, wv, WHEEL, WHEEL, '#0c1611');
+        sideCircle(0, wv, WHEEL, 0.045, '#a7b0ab');
+      };
+
+      const body = () => {
+        box(...at(BODY.u), BODY.z + robot.hop, BODY.h, BODY.hw, BODY.hd, robot.th, '#eef0ef', 'rgba(255, 255, 255, 0.8)');
+        if (facing) {
+          // Three status lights that turn on as blocks get stacked
+          const uf = BODY.u + BODY.hw + 0.004;
+          [-0.08, 0, 0.08].forEach((v, i) => faceCircle(uf, v, BODY.z + 0.14, 0.025, 0.025, i < robot.stacked ? '#5fe3e8' : '#a7b0ab'));
+        }
+      };
+
+      // Head with a dark screen for a face: two tall eyes that blink, and ^ ^ when the stack is done
+      const head = () => {
+        box(...at(NECK.u), NECK.z + robot.hop, NECK.h, NECK.hw, NECK.hd, robot.th, '#a7b0ab', null);
+        box(...at(HEAD.u), HEAD.z + robot.hop, HEAD.h, HEAD.hw, HEAD.hd, robot.th, '#eef0ef', 'rgba(255, 255, 255, 0.8)');
+        if (!facing) return;
+        const uf = HEAD.u + HEAD.hw + 0.004, zc = HEAD.z + HEAD.h / 2;
+        faceRect(uf, -HEAD.hd + 0.04, HEAD.hd - 0.04, HEAD.z + 0.04, HEAD.z + HEAD.h - 0.04, '#0b1a12');
+        const happy = now < robot.happy, blink = now % 3600 < 140;
+        [-0.075, 0.075].forEach(v => {
+          if (happy) {
+            ctx.strokeStyle = '#5fe3e8';
+            ctx.lineWidth = Math.max(1.5, s * 0.04);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            [[-0.035, -0.015], [0, 0.025], [0.035, -0.015]].forEach(([dv, dz], i) => {
+              const p = Q(uf, v + dv, zc + dz);
+              if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]);
+            });
+            ctx.stroke();
+          } else {
+            faceCircle(uf, v, zc, 0.03, blink ? 0.006 : 0.05, '#5fe3e8');
+          }
+        });
+      };
+
+      // Arm: shoulder on the +v side of the body, two links to a wrist above the center line,
+      // elbow raised; the gripper hangs straight down with two fingers across the heading
+      const g = BLOCK + 0.02 + 0.08 * robot.grip;
+      const S = { u: SHOULDER.u, v: SHOULDER.v, z: SHOULDER.z }, T = { u: robot.tu, v: 0, z: robot.tz };
+      const du = T.u - S.u, dv = T.v - S.v, dh = Math.hypot(du, dv) || 1e-6, dz = T.z - S.z;
+      const d = Math.min(Math.hypot(dh, dz), L1 + L2 - 1e-3);
+      const cosA = Math.min(1, Math.max(-1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d)));
+      const ang = Math.atan2(dz, dh) + Math.acos(cosA);
+      const E = { u: S.u + L1 * Math.cos(ang) * du / dh, v: S.v + L1 * Math.cos(ang) * dv / dh, z: S.z + L1 * Math.sin(ang) };
+      // The upper link sits by the body; the forearm and gripper reach out above the block
+      const upperArm = () => {
+        const sh = Q(S.u, S.v, S.z);
+        line(sh, Q(E.u, E.v, E.z), Math.max(3, s * 0.1), '#d3d8d5');
+        dot(sh, Math.max(2.5, s * 0.08), '#f6a901');
+      };
+      const forearm = () => {
+        const el = Q(E.u, E.v, E.z), wr = Q(T.u, T.v, T.z);
+        line(el, wr, Math.max(2.5, s * 0.085), '#d3d8d5');
+        dot(el, Math.max(2.25, s * 0.065), '#f6a901');
+        // Palm across the heading
+        line(Q(T.u, -g, T.z), Q(T.u, g, T.z), Math.max(2, s * 0.06), '#eef0ef');
+        dot(wr, Math.max(2, s * 0.055), '#f6a901');
+      };
+      // The far finger goes behind the block, the forearm and palm above it, the near finger in front
+      const finger = k => line(Q(T.u, k * g, T.z), Q(T.u, k * g, T.z - FINGER), Math.max(2, s * 0.06), '#eef0ef');
+      const gripper = () => {
+        finger(-near);
+        slot.sort((p, q) => p.z - q.z).forEach(drawBlock);
+        forearm();
+        finger(near);
+      };
+
+      ellipse(robot.x, robot.y, 0, 0.55, 'rgba(0, 0, 0, 0.35)');
+      base();
+      if (facing) {
+        if (!armNear) upperArm();
+        body(); head();
+        if (armNear) upperArm();
+        gripper();
+      } else {
+        gripper();
+        if (!armNear) upperArm();
+        body(); head();
+        if (armNear) upperArm();
+      }
     }
 
     function draw(now) {
       ctx.clearRect(0, 0, width, height);
       if (!active) return;
+      drawFloor(now);
 
-      // Light up the cells around the robot, and fade the ones it has left behind
-      const r = Math.ceil(GLOW);
-      for (let y = Math.floor(robot.y) - r; y <= Math.floor(robot.y) + r; y++) {
-        for (let x = Math.floor(robot.x) - r; x <= Math.floor(robot.x) + r; x++) {
-          if (x < x0 - 1 || x > x1 + 1 || y < 0 || y > y1 + 1) continue;
-          if (Math.hypot(x + 0.5 - robot.x, y + 0.5 - robot.y) <= GLOW) lit.set(y * 1000 + x, now);
-        }
-      }
-      lit.forEach((t, k) => {
-        const a = reduceMotion ? 1 : 1 - (now - t) / FADE;
-        if (a <= 0) { lit.delete(k); return; }
-        const x = k % 1000, y = Math.floor(k / 1000);
-        ctx.fillStyle = 'rgba(255, 255, 255, ' + (0.07 * a).toFixed(3) + ')';
-        ctx.fillRect(px(x) + 1, px(y) + 1, CELL - 1, CELL - 1);
-      });
-
-      // Remaining route
+      // Remaining route, on the floor
       if (path.length) {
-        ctx.strokeStyle = 'rgba(246, 169, 1, 0.75)';
+        ctx.strokeStyle = 'rgba(246, 169, 1, 0.8)';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.setLineDash([2, 6]);
         ctx.beginPath();
-        ctx.moveTo(px(robot.x), px(robot.y));
-        path.forEach(p => ctx.lineTo(px(p.x), px(p.y)));
+        const p0 = P(robot.x, robot.y);
+        ctx.moveTo(p0[0], p0[1]);
+        path.forEach(p => { const q = P(p.x, p.y); ctx.lineTo(q[0], q[1]); });
         ctx.stroke();
         ctx.setLineDash([]);
       }
 
-      if (obj) drawObject(px(obj.x + 0.5), px(obj.y + 0.5));
+      // A held block follows the hands
+      const c = Math.cos(robot.th), sn = Math.sin(robot.th);
+      const hx = robot.x + robot.tu * c, hy = robot.y + robot.tu * sn;
+      if (robot.holding) Object.assign(robot.holding, { x: hx, y: hy, z: robot.tz - WRIST + robot.hop });
 
-      // Robot: square base, lidar at the center, telescoping arm with a two-finger gripper
-      const half = 0.6 * CELL, tip = half + robot.arm * CELL, g = (0.1 + 0.14 * robot.grip) * CELL;
-      ctx.save();
-      ctx.translate(px(robot.x), px(robot.y));
-      ctx.rotate(robot.th);
-      ctx.strokeStyle = '#fff';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 3;
-      if (robot.arm > 0.02) { ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(tip, 0); ctx.stroke(); }
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(tip, -g); ctx.lineTo(tip, g);
-      ctx.moveTo(tip, -g); ctx.lineTo(tip + 0.26 * CELL, -g);
-      ctx.moveTo(tip, g); ctx.lineTo(tip + 0.26 * CELL, g);
-      ctx.stroke();
-      ctx.fillStyle = '#00351c';
-      ctx.lineWidth = 2;
-      roundRect(-half, -half, 2 * half, 2 * half, 0.22 * CELL);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#f6a901';
-      ctx.beginPath();
-      ctx.arc(0, 0, 0.16 * CELL, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      if (robot.holding) {
-        const d = half / CELL + robot.arm + 0.15;
-        drawObject(px(robot.x + Math.cos(robot.th) * d), px(robot.y + Math.sin(robot.th) * d));
-      }
+      // Blocks between the hands are drawn with the robot; the rest back to front around it
+      const slot = [], before = [], after = [];
+      blocks.forEach(bl => {
+        if (bl === robot.holding || Math.hypot(bl.x - hx, bl.y - hy) < 0.3) slot.push(bl);
+        else (bl.x + bl.y < robot.x + robot.y ? before : after).push(bl);
+      });
+      const order = (p, q) => (p.x + p.y) - (q.x + q.y) || p.z - q.z;
+      before.sort(order).forEach(drawBlock);
+      drawRobot(now, slot);
+      after.sort(order).forEach(drawBlock);
     }
 
     function render(now) {
