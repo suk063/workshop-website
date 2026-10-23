@@ -75,28 +75,27 @@
       backdrop-filter: saturate(1.4) blur(10px);
       border-bottom: 1px solid var(--rule);
     }
-    .header-bar { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; height: var(--header-h); }
-    .brand img { width: auto; height: 2.25rem; }
+    .header-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: var(--header-h); }
+    .brand { flex: none; }
+    .brand img { width: auto; height: 1.75rem; }
+    @media (min-width: 40rem) { .brand img { height: 2.25rem; } }
     @media (min-width: 62.5rem) { .brand img { height: 2.75rem; } }
-    .nav { display: none; }
+    /* The section links sit beside the logo; when they do not all fit they scroll sideways */
+    .nav {
+      display: flex; align-items: center; gap: 1.25rem; min-width: 0;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    @media (max-width: 47.99rem) {
+      .nav { -webkit-mask-image: linear-gradient(90deg, #000 80%, transparent); mask-image: linear-gradient(90deg, #000 80%, transparent); padding-right: 1.5rem; }
+    }
+    @media (min-width: 62.5rem) { .nav { gap: 1.75rem; } }
     .nav-link {
-      padding-block: 0.25rem; border-bottom: 2px solid transparent;
+      flex: none; padding-block: 0.25rem; border-bottom: 2px solid transparent;
       color: var(--slate); font-size: 0.9375rem; font-weight: 500; text-decoration: none;
     }
     .nav-link:hover { color: var(--ink); }
     .nav-link[aria-current="true"] { color: var(--ink); border-bottom-color: var(--violet); }
-    .menu-toggle {
-      padding: 0.4rem 0.95rem; border: 1px solid var(--rule); border-radius: 999px;
-      background: none; color: var(--ink); cursor: pointer;
-      font: inherit; font-size: 0.9375rem; font-weight: 600;
-    }
-    .mobile-nav { padding: 0.25rem var(--gutter) 1rem; border-top: 1px solid var(--rule); }
-    .mobile-nav a { display: block; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); color: var(--ink); font-weight: 500; text-decoration: none; }
-    .mobile-nav a:last-child { border-bottom: 0; }
-    @media (min-width: 62.5rem) {
-      .nav { display: flex; align-items: center; gap: 1.75rem; }
-      .menu-toggle, .mobile-nav { display: none !important; }
-    }
 
     /* Buttons */
     .btn {
@@ -211,21 +210,14 @@
       <img src="./static/images/icra27.png" alt="ICRA 2027 Seoul" width="978" height="200">
     </a>
     <nav class="nav" aria-label="Sections">
-      <a class="nav-link" href="#introduction">Introduction</a>
+      <a class="nav-link" href="#about">About</a>
+      <a class="nav-link" href="#cfp">Call for papers</a>
       <a class="nav-link" href="#speakers">Speakers</a>
       <a class="nav-link" href="#schedule">Schedule</a>
-      <a class="nav-link" href="#cfp">Call for papers</a>
+      <a class="nav-link" href="#discussion">Panel and debate</a>
       <a class="nav-link" href="#organizers">Organizers</a>
     </nav>
-    <button class="menu-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav">Menu</button>
   </div>
-  <nav class="mobile-nav" id="mobile-nav" aria-label="Sections" hidden>
-    <a href="#introduction">Introduction</a>
-    <a href="#speakers">Speakers</a>
-    <a href="#schedule">Schedule</a>
-    <a href="#cfp">Call for papers</a>
-    <a href="#organizers">Organizers</a>
-  </nav>
 </header>
 
 <section class="hero" id="top">
@@ -250,14 +242,23 @@
 
 <main class="wrap" id="main">
 
-  <section class="section" id="introduction">
-    <h2 class="section-title">Introduction</h2>
+  <section class="section" id="about">
+    <h2 class="section-title">About the workshop</h2>
     <div class="prose">
       <p>For a robot to be truly general, it must be able to manipulate more than an arm’s length away. Prior research has approached this goal from two directions: navigation and SLAM researchers build systems with spatial understanding capabilities that enable robots to move through large environments, while manipulation researchers develop robot policies, skills, and controllers for contact-rich interactions. Mobile manipulation sits at their intersection, but existing approaches still often treat navigation and manipulation as separate components instead of integrating them into a unified system.</p>
       <p>Recent advances in spatial perception, robot foundation models, scalable data collection, whole-body control, as well as increasingly accessible wheeled and legged platforms make it possible to study these capabilities together on meaningful real-world tasks. As robots move beyond tabletop settings, they must jointly decide where to move, what to observe, and how to interact over long horizons.</p>
       <p>In this workshop, we bring together researchers in hardware, spatial AI, control, planning, and robot learning to answer the following questions:</p>
       <p>The workshop brings these questions together around complete mobile manipulation systems, connecting communities that often meet separately. ICRA’s breadth makes it particularly suited to this discussion. Expected outcomes include shared evaluation priorities, new collaborations, and research directions for robots that can seamlessly perceive, move, and interact. The workshop aligns most closely with the RAS TCs on Mobile Manipulation, Robot Learning, and Computer &amp; Robot Vision.</p>
     </div>
+  </section>
+
+  <section class="section" id="cfp">
+    <h2 class="section-title">Call for papers</h2>
+    <div class="prose">
+      <p>We will solicit contributed papers across the <a href="#about">four workshop areas</a>. Submissions will be reviewed for relevance, technical quality, and potential to stimulate discussion. Accepted papers will be presented as posters and shared on OpenReview, with selected student contributions receiving spotlight talks.</p>
+      <p>The call for papers will accept full papers and extended abstracts, giving preliminary work and emerging researchers an entry point.</p>
+    </div>
+    <p class="placeholder">Important dates and the submission link will be posted here.</p>
   </section>
 
   <section class="section" id="speakers">
@@ -397,15 +398,6 @@
     </div>
   </section>
 
-  <section class="section" id="cfp">
-    <h2 class="section-title">Call for papers</h2>
-    <div class="prose">
-      <p>We will solicit contributed papers across the <a href="#introduction">four workshop areas</a>. Submissions will be reviewed for relevance, technical quality, and potential to stimulate discussion. Accepted papers will be presented as posters and shared on OpenReview, with selected student contributions receiving spotlight talks.</p>
-      <p>The call for papers will accept full papers and extended abstracts, giving preliminary work and emerging researchers an entry point.</p>
-    </div>
-    <p class="placeholder">Important dates and the submission link will be posted here.</p>
-  </section>
-
   <section class="section" id="organizers">
     <h2 class="section-title">Organizers</h2>
     <ul class="people people-organizers">
@@ -480,23 +472,6 @@
 </main>
 
 <script>
-  // Mobile nav toggle
-  (function () {
-    var toggle = document.getElementById('nav-toggle');
-    var menu = document.getElementById('mobile-nav');
-    function setOpen(open) {
-      toggle.setAttribute('aria-expanded', String(open));
-      toggle.textContent = open ? 'Close' : 'Menu';
-      menu.hidden = !open;
-    }
-    toggle.addEventListener('click', function () {
-      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-    });
-    menu.addEventListener('click', function (e) {
-      if (e.target.closest('a')) setOpen(false);
-    });
-  })();
-
   // Underline the nav link for the section currently in view
   (function () {
     if (!('IntersectionObserver' in window)) return;
