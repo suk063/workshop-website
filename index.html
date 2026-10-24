@@ -23,6 +23,7 @@
       --ink: #1c1b20;
       --slate: #5c5e66;
       --rule: #e5e4e8;
+      --rule-strong: #bebcc5;
       --mist: #f4f2f6;
       --violet: #6f1284;
       --violet-deep: #540d64;
@@ -138,7 +139,7 @@
 
     /* Sections */
     .section { padding-block: 2.75rem; }
-    .section + .section { border-top: 1px solid var(--rule); }
+    .section + .section { border-top: 2px solid var(--rule-strong); }
     @media (min-width: 48rem) { .section { padding-block: 3rem; } }
     .section-title { margin: 0 0 1.5rem; font-size: clamp(1.75rem, 1.3rem + 1.2vw, 2.25rem); font-weight: 650; font-stretch: 108%; line-height: 1.15; letter-spacing: -0.01em; }
     .prose p { margin: 0 0 1rem; text-wrap: pretty; }
@@ -167,7 +168,6 @@
     .schedule th { padding: 0 0.75rem 0.5rem; border-bottom: 1px solid var(--ink); color: var(--slate); font-size: 0.875rem; font-weight: 600; text-align: left; }
     .schedule td { padding: 0.4rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: middle; }
     .schedule td:first-child { width: 1%; padding-right: 1.25rem; color: var(--slate); white-space: nowrap; }
-    .schedule tbody tr:last-child td { border-bottom: 0; }
     .schedule .is-break td { background: var(--mist); }
     .schedule .is-feature td { background: var(--tag-bg); }
     .slot { display: flex; align-items: center; gap: 0.75rem; min-height: 2rem; }
