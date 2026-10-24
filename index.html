@@ -756,7 +756,8 @@
       lit = new Map();
       path = [];
       if (!active) return;
-      ox = left + (avail - (N + M) * a) / 2 + M * a;
+      // A quarter of the spare width goes to the left of the floor, so it sits a little left of center
+      ox = left + (avail - (N + M) * a) * 0.25 + M * a;
       oy = (height - ((N + M) * b + 0.3 * s)) / 2 + 0.75 * s;
       robot = { x: 0.5, y: 0.5, th: 0, tu: REST.u, tz: REST.z, grip: 1, holding: null, stacked: 0, happy: 0, hop: 0 };
       padAlpha = 1;
