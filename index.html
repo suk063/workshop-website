@@ -472,21 +472,31 @@
 </main>
 
 <script>
-  // Underline the nav link for the section currently in view
+  // Underline the nav link for the section currently in view: the last section whose top has
+  // passed a line 30% down the window (the last one once the page is scrolled to the bottom).
+  // Worked out on scroll, not with an IntersectionObserver rootMargin, because browsers ignore
+  // rootMargin when the page is shown in a cross-origin iframe, which underlined the wrong link.
   (function () {
-    if (!('IntersectionObserver' in window)) return;
     var links = {};
     document.querySelectorAll('.nav-link[href^="#"]').forEach(function (a) {
       links[a.getAttribute('href').slice(1)] = a;
     });
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        Object.keys(links).forEach(function (id) { links[id].removeAttribute('aria-current'); });
-        if (links[entry.target.id]) links[entry.target.id].setAttribute('aria-current', 'true');
+    var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+    var frame = 0;
+    function update() {
+      frame = 0;
+      var line = window.innerHeight * 0.3, current = null;
+      sections.forEach(function (s) { if (s.getBoundingClientRect().top <= line) current = s; });
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = sections[sections.length - 1];
+      Object.keys(links).forEach(function (id) {
+        if (current && id === current.id) links[id].setAttribute('aria-current', 'true');
+        else links[id].removeAttribute('aria-current');
       });
-    }, { rootMargin: '-30% 0px -60% 0px' });
-    document.querySelectorAll('main section[id]').forEach(function (s) { observer.observe(s); });
+    }
+    function schedule() { if (!frame) frame = requestAnimationFrame(update); }
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    update();
   })();
 
   // Show initials when a photo is missing
