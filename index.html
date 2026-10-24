@@ -193,7 +193,9 @@
       .schedule td { padding-inline: 0.5rem; }
       .schedule td:first-child { padding-right: 0.75rem; font-size: 0.9375rem; }
       .slot { gap: 0.6rem; }
-      .slot-photo, .slot-spacer { width: 1.75rem; height: 1.75rem; }
+      .slot-photo { width: 1.75rem; height: 1.75rem; }
+      /* No blank space before activities without a photo, so they have more room per line */
+      .slot-spacer { display: none; }
     }
 
     /* Panel and debate */
@@ -512,7 +514,8 @@
       links[a.getAttribute('href').slice(1)] = a;
     });
     var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
-    var frame = 0;
+    var nav = document.querySelector('.nav');
+    var frame = 0, shown;
     function update() {
       frame = 0;
       var line = window.innerHeight * 0.3, current = null;
@@ -522,6 +525,13 @@
         if (current && id === current.id) links[id].setAttribute('aria-current', 'true');
         else links[id].removeAttribute('aria-current');
       });
+      // On narrow screens the links scroll sideways: bring the underlined one into the middle
+      if (current === shown) return;
+      shown = current;
+      var a = current && links[current.id];
+      if (!a) { nav.scrollTo({ left: 0, behavior: 'smooth' }); return; }
+      var nr = nav.getBoundingClientRect(), ar = a.getBoundingClientRect();
+      nav.scrollBy({ left: ar.left - nr.left - (nr.width - ar.width) / 2, behavior: 'smooth' });
     }
     function schedule() { if (!frame) frame = requestAnimationFrame(update); }
     window.addEventListener('scroll', schedule, { passive: true });
