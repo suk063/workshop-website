@@ -149,10 +149,11 @@
     .people { display: grid; gap: 2rem 1.25rem; margin: 0; padding: 0; list-style: none; }
     .people-speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); --avatar: 8.5rem; }
     @media (min-width: 40rem) { .people-speakers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (min-width: 64rem) { .people-speakers { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
     .people-organizers { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5rem 2.75rem; --avatar: 6.5rem; }
     .people-organizers > li { width: calc(50% - 1.375rem); }
     @media (min-width: 30rem) { .people-organizers > li { width: 8.5rem; } }
+    /* Wider gaps on large screens, which fit five organizers to a row */
+    @media (min-width: 64rem) { .people-organizers { column-gap: 4rem; } }
     .person { display: flex; flex-direction: column; align-items: center; color: var(--ink); text-align: center; text-decoration: none; }
     .person:hover { color: var(--ink); }
     .person-photo { width: 100%; max-width: var(--avatar); height: auto; aspect-ratio: 1; border-radius: 50%; object-fit: cover; background: var(--mist); }
